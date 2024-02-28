@@ -1,4 +1,4 @@
-// Version: 0.0
+// Version: 0.2
 
 // There are various possible states and need to keep track of them.
 // State 1 is active, in which case nothing is to be suggested and
@@ -24,7 +24,14 @@
 // suggested text is removed and the
 // state becomes State 1.
 
+let apikey;
 
+fetch('/wp-json/autosuggestai/v1/apikey').then(res => {
+    apikey = res.text();
+});
+
+
+console.log(apikey)
 
 
 let idle = false;
