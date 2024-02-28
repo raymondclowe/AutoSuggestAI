@@ -31,7 +31,7 @@ let idle = false;
 let idleTimeout;
 let suggestionState = 'active'
 
-function getSuggestion(existingText) {
+function getSuggestionPromise(existingText) {
     return new Promise((resolve) => {
         setTimeout(() => {
             resolve("Dummy suggestion");
@@ -68,7 +68,33 @@ function idleNow() {
             // should show the suggestion now and then 
             // add a keyboard handler to look basically any key
             // and it will do tab or non tab
+            
+
+            const editorCanvasIiframe = document.getElementsByName('editor-canvas')[0];
+            const editorCanvasDoc = editorCanvasIiframe.contentDocument;
+            const paragraphs = editorCanvasDoc.getElementsByTagName('p');
+
+            let selectedElement = null
+            // Access the paragraphs within the iframe
+            for (let i = 0; i < paragraphs.length; i++) {
+            console.log(paragraphs[i].textContent);
+            // check if the paragraph has the class '.is-selected'
+            if (paragraphs[i].classList.contains('is-selected')) {
+                selectedElement = paragraphs[i];
+                break;
+            }
+            
+}
+            nearestPTag = selectedElement.closest('p');
+            // insert the suggestion text after the p tag
+            // and then add a tab handler
+            nearestPTag.innerHTML += '<i style="color: grey;">' + suggestionText + '</i>';
+
             document.addEventListener('keydown', tabHandler);
+
+
+
+ 
 
         })
     }
