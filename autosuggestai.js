@@ -24,14 +24,36 @@
 // suggested text is removed and the
 // state becomes State 1.
 
-let apikey;
+let myApiKey;
 
-fetch('/wp-json/autosuggestai/v1/apikey').then(res => {
-    apikey = res.text();
+fetch('/index.php?rest_route=/autosuggestai/v1/apikey').then(res => res.text()).then(key => {
+    myApiKey = key;
+    console.log(' key is ' + myApiKey)
 });
 
 
-console.log(apikey)
+let thePrompt = `
+You are an automated writing assistant who will suggest the next piece of text to write after an example given to you. The suggested text will always be brief, meaningful, sensible, in keeping with the style.
+
+Examples: if you are given the text "The cat sat on the " then you will reply "mat."
+
+If you are given the text "The rain in Spain falls " then you will reply with "mainly on the plain".
+
+If you are given the text "The sun rises in the east " then you will reply with "and sets in the west".
+
+If you are given the text "The dog " then you will reply with "barks".
+
+If you are given the text "Four score and seven years ago " then you will reply with " our forefathers brought for a new nation".
+
+You will be given the title of the article from which the text comes, to provide you with context, then the incomplete paragraph that needs extending.
+
+You will return only the extention text, without including the original incomplete paragraph.
+
+`;
+
+
+
+
 
 
 let idle = false;
@@ -53,6 +75,7 @@ const tabHandler = (event) => {
             // and set the state to active
             suggestionState = 'active'
             const selectedBlock = wp.data.select('core/block-editor').getSelectedBlock();
+            const selectedBlockText = selectedBlock.attributes.text;
 
             wp.data.dispatch('core/block-editor').replaceBlocks(selectedBlock.clientId, selectedBlockText + suggestionText)
         }
@@ -75,7 +98,7 @@ function idleNow() {
             // should show the suggestion now and then 
             // add a keyboard handler to look basically any key
             // and it will do tab or non tab
-            
+
 
             const editorCanvasIiframe = document.getElementsByName('editor-canvas')[0];
             const editorCanvasDoc = editorCanvasIiframe.contentDocument;
@@ -84,24 +107,53 @@ function idleNow() {
             let selectedElement = null
             // Access the paragraphs within the iframe
             for (let i = 0; i < paragraphs.length; i++) {
-            console.log(paragraphs[i].textContent);
-            // check if the paragraph has the class '.is-selected'
-            if (paragraphs[i].classList.contains('is-selected')) {
-                selectedElement = paragraphs[i];
-                break;
-            }
-            
-}
-            nearestPTag = selectedElement.closest('p');
-            // insert the suggestion text after the p tag
-            // and then add a tab handler
-            nearestPTag.innerHTML += '<i style="color: grey;">' + suggestionText + '</i>';
+                console.log(paragraphs[i].textContent);
+                // check if the paragraph has the class '.is-selected'
+                if (paragraphs[i].classList.contains('is-selected')) {
+                    selectedElement = paragraphs[i];
+                    break;
+                }
 
+            }
+            // Find the nearest parent paragraph tag
+            nearestPTag = selectedElement.closest('p');
+
+            // Get the current selection range
+            const selection = window.getSelection();
+
+            // if the selection is just a single cursor, and not a range, then
+            // exit as we don't want to mess with the text if the user is highlighting
+            if (selection.isCollapsed !== true) {
+                return;
+            }
+
+            // Get the node and offset where the cursor is located
+            let anchorNode = selection.anchorNode;
+            let anchorOffset = selection.anchorOffset;
+
+
+                // No selection, so insert at cursor position
+                let textNode = document.createTextNode(suggestionText);
+                let italicNode = document.createElement('i');
+                italicNode.style.color = 'grey';
+                italicNode.appendChild(textNode);
+                nearestPTag.insertBefore(italicNode, anchorNode);
+
+                // Adjust anchor offset to account for inserted text
+                anchorOffset += suggestionText.length;
+   
+
+            // Restore the selection or cursor position
+            selection.removeAllRanges();
+            selection.setBaseAndExtent(anchorNode, anchorOffset, anchorNode, anchorOffset);
+
+
+            // wait for a tab
             document.addEventListener('keydown', tabHandler);
 
 
 
- 
+
 
         })
     }
