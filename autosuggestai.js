@@ -58,7 +58,48 @@ You will return only the extention text, without including the original incomple
 
 let idle = false;
 let idleTimeout;
-let suggestionState = 'active'
+let suggestionState = 'active';
+let suggestionText;
+
+function typeText(TypingText, DelaySec, targetElement) {
+    const focusElement = () => {
+      if (!document.hasFocus()) {
+        window.focus();
+      }
+      
+      if (targetElement && document.activeElement !== targetElement) {
+        targetElement.focus();
+      }
+    };
+  
+    const typeCharacter = (char) => {
+      const event = new InputEvent('input', {
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+        data: char,
+        inputType: 'insertText',
+      });
+  
+      const target = targetElement || document.activeElement;
+      target.textContent += char;
+      target.dispatchEvent(event);
+    };
+  
+    const typeTextWithDelay = (text) => {
+      Array.from(text).forEach((char, index) => {
+        setTimeout(() => {
+          typeCharacter(char);
+        }, 100 * index);
+      });
+    };
+  
+    focusElement();
+  
+    setTimeout(() => {
+      typeTextWithDelay(TypingText);
+    }, DelaySec * 1000);
+  }
 
 function getSuggestionPromise(existingText) {
     return new Promise((resolve) => {
@@ -71,16 +112,83 @@ function getSuggestionPromise(existingText) {
 const tabHandler = (event) => {
     if (suggestionState = 'inactive-got-suggestion') {
         if (event.key === 'Tab') {
+            // do not do the default tab behaviour
+            event.preventDefault();
             // replace the current block with the suggestion
             // and set the state to active
-            suggestionState = 'active'
-            const selectedBlock = wp.data.select('core/block-editor').getSelectedBlock();
-            const selectedBlockText = selectedBlock.attributes.text;
+            suggestionState = 'active';
+            const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
 
-            wp.data.dispatch('core/block-editor').replaceBlocks(selectedBlock.clientId, selectedBlockText + suggestionText)
+            wp.data.dispatch('core/block-editor').updateBlockAttributes(currentBlock.clientId, {
+                content: currentBlock.attributes.content + suggestionText,
+            });
+
+            // set the focus to the current block by finding the element in the canvas, focusing it and sending a keypress to it
+            const currentBlockElement = getcurrentElementFromCanvas();
+            currentBlockElement.focus();
+            
+            currentBlockElement.dispatchEvent(new KeyboardEvent('keydown', {
+                key: 'Control', // ctrl key
+                keyCode: 17, // keyCode 17 represents ctrl 
+                which: 17, // which is an alias for keyCode
+            }));
+
+            currentBlockElement.dispatchEvent(new KeyboardEvent('keydown', {
+                key: 'End', // home key
+                keyCode: 36, // keyCode 36 represents home
+                which: 36, // which is an alias for keyCode 
+            }));
+
+            // release all pressed keys
+            currentBlockElement.dispatchEvent(new KeyboardEvent('keyup', {
+                key: 'Control', // ctrl key
+                keyCode: 17, // keyCode 17 represents ctrl 
+                which: 17, // which is an alias for keyCode
+            }));
+
+            currentBlockElement.dispatchEvent(new KeyboardEvent('keyup', {
+                key: 'End', // end key
+                keyCode: 36, // keyCode 36 represents home
+                which: 36, // which is an alias for keyCode 
+            }));
+
+
+           
+
         }
     }
     document.removeEventListener('keydown', tabHandler);
+}
+
+
+// The getcurrentElementFromCanvas function is used to get the selected DOM element from within the iframe canvas 
+// where the code editor is rendered. 
+//
+// This is necessary because the code editor exists within an iframe, which creates a separate DOM from the
+// main page.So code running on the main page cannot directly access the DOM within the iframe.
+// The getcurrentElementFromCanvas function provides a way to reach into the iframe DOM and get the currently 
+// selected element.This allows the autosuggest feature to inspect the selected code and provide relevant suggestions.
+//
+// Without this function, the autosuggest feature would not be able to determine what code the user has selected in
+//  the editor, since that code exists in a separate DOM context within the iframe.
+
+function getcurrentElementFromCanvas() {
+    const editorCanvasIiframe = document.getElementsByName('editor-canvas')[0];
+    const editorCanvasDoc = editorCanvasIiframe.contentDocument;
+    const paragraphs = editorCanvasDoc.getElementsByTagName('p');
+
+    let currentElement = null
+    // Access the paragraphs within the iframe
+    for (let i = 0; i < paragraphs.length; i++) {
+        console.log(paragraphs[i].textContent);
+        // check if the paragraph has the class '.is-selected'
+        if (paragraphs[i].classList.contains('is-selected')) {
+            currentElement = paragraphs[i];
+            break;
+        }
+
+    };
+    return currentElement
 }
 
 function idleNow() {
@@ -88,9 +196,9 @@ function idleNow() {
     console.log("Inactive")
     if (suggestionState = 'inactive-before-suggestion') { // the user has stopped typing, and we haven't got a suggestion yet
         // get the text of the current wp editor block.
-        const selectedBlock = wp.data.select('core/block-editor').getSelectedBlock();
-        const selectedBlockText = selectedBlock.attributes.content
-        const suggestionTextPromise = getSuggestionPromise(selectedBlockText)
+        const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
+        const currentBlockText = currentBlock.attributes.content
+        const suggestionTextPromise = getSuggestionPromise(currentBlockText)
         suggestionState = 'inactive-asked-for-suggestion'
         suggestionTextPromise.then((suggestionText) => {
             console.log("Got some suggestion: " + suggestionText)
@@ -100,23 +208,9 @@ function idleNow() {
             // and it will do tab or non tab
 
 
-            const editorCanvasIiframe = document.getElementsByName('editor-canvas')[0];
-            const editorCanvasDoc = editorCanvasIiframe.contentDocument;
-            const paragraphs = editorCanvasDoc.getElementsByTagName('p');
-
-            let selectedElement = null
-            // Access the paragraphs within the iframe
-            for (let i = 0; i < paragraphs.length; i++) {
-                console.log(paragraphs[i].textContent);
-                // check if the paragraph has the class '.is-selected'
-                if (paragraphs[i].classList.contains('is-selected')) {
-                    selectedElement = paragraphs[i];
-                    break;
-                }
-
-            }
+            currentElement = getcurrentElementFromCanvas();
             // Find the nearest parent paragraph tag
-            nearestPTag = selectedElement.closest('p');
+            nearestPTag = currentElement.closest('p');
 
             // Get the current selection range
             const selection = window.getSelection();
@@ -132,16 +226,16 @@ function idleNow() {
             let anchorOffset = selection.anchorOffset;
 
 
-                // No selection, so insert at cursor position
-                let textNode = document.createTextNode(suggestionText);
-                let italicNode = document.createElement('i');
-                italicNode.style.color = 'grey';
-                italicNode.appendChild(textNode);
-                nearestPTag.insertBefore(italicNode, anchorNode);
+            // No selection, so insert at cursor position
+            let textNode = document.createTextNode(suggestionText);
+            let italicNode = document.createElement('i');
+            italicNode.style.color = 'grey';
+            italicNode.appendChild(textNode);
+            nearestPTag.insertBefore(italicNode, anchorNode);
 
-                // Adjust anchor offset to account for inserted text
-                anchorOffset += suggestionText.length;
-   
+            // Adjust anchor offset to account for inserted text
+            anchorOffset += suggestionText.length;
+
 
             // Restore the selection or cursor position
             selection.removeAllRanges();
