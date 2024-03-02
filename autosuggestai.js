@@ -61,51 +61,77 @@ let idleTimeout;
 let suggestionState = 'active';
 let suggestionText;
 
-function typeText(TypingText, DelaySec, targetElement) {
+function typeText(TypingText, DelaySec) {
     const focusElement = () => {
-      if (!document.hasFocus()) {
-        window.focus();
-      }
-      
-      if (targetElement && document.activeElement !== targetElement) {
-        targetElement.focus();
-      }
+        if (!document.hasFocus()) {
+            window.focus();
+        }
     };
-  
+
     const typeCharacter = (char) => {
-      const event = new InputEvent('input', {
-        bubbles: true,
-        cancelable: true,
-        composed: true,
-        data: char,
-        inputType: 'insertText',
-      });
-  
-      const target = targetElement || document.activeElement;
-      target.textContent += char;
-      target.dispatchEvent(event);
+        const event = new InputEvent('input', {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+            data: char,
+            inputType: 'insertText',
+        });
+
+        const target = document.activeElement;
+        target.textContent += char;
+        target.dispatchEvent(event);
     };
-  
+
     const typeTextWithDelay = (text) => {
-      Array.from(text).forEach((char, index) => {
-        setTimeout(() => {
-          typeCharacter(char);
-        }, 100 * index);
-      });
+        Array.from(text).forEach((char, index) => {
+            setTimeout(() => {
+                typeCharacter(char);
+            }, 100 * index);
+        });
     };
-  
+
     focusElement();
-  
+
     setTimeout(() => {
-      typeTextWithDelay(TypingText);
+        typeTextWithDelay(TypingText);
     }, DelaySec * 1000);
-  }
+}
+
 
 function getSuggestionPromise(existingText) {
     return new Promise((resolve) => {
         setTimeout(() => {
             resolve("Dummy suggestion");
         }, 1000);
+    });
+}
+function insertTextIntoCurrentBlock(text) {
+
+
+    // Get the selected block
+    const selectedBlock = wp.data.select('core/block-editor').getSelectedBlock();
+
+    if (!selectedBlock) {
+        console.error('No block selected!');
+        return;
+    }
+
+    // Check if the block is a paragraph block. Adapt this check for other block types.
+    if (selectedBlock.name !== 'core/paragraph') {
+        console.error('Selected block is not a paragraph block.');
+        return;
+    }
+
+    // Get current content from block attributes
+    const currentAttributes = selectedBlock.attributes;
+    const currentContent = currentAttributes.content;
+
+    // Combine current content with the new text
+    const newContent = `${currentContent} ${text}`;
+
+    // Update the block's content
+    wp.data.dispatch('core/block-editor').updateBlockAttributes(selectedBlock.clientId, {
+        content: newContent,
     });
 }
 
@@ -119,14 +145,20 @@ const tabHandler = (event) => {
             suggestionState = 'active';
             const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
 
-            wp.data.dispatch('core/block-editor').updateBlockAttributes(currentBlock.clientId, {
-                content: currentBlock.attributes.content + suggestionText,
-            });
+            // wp.data.dispatch('core/block-editor').updateBlockAttributes(currentBlock.clientId, {
+            //     content: currentBlock.attributes.content + suggestionText,
+            // });
 
             // set the focus to the current block by finding the element in the canvas, focusing it and sending a keypress to it
             const currentBlockElement = getcurrentElementFromCanvas();
             currentBlockElement.focus();
-            
+
+            // typeText(suggestionText,1,currentBlockElement);
+
+            const currentBlockClientId = wp.data.select('core/block-editor').getSelectedBlockClientId();
+            insertTextIntoCurrentBlock('Additional text to be added.');
+
+
             currentBlockElement.dispatchEvent(new KeyboardEvent('keydown', {
                 key: 'Control', // ctrl key
                 keyCode: 17, // keyCode 17 represents ctrl 
@@ -153,7 +185,7 @@ const tabHandler = (event) => {
             }));
 
 
-           
+
 
         }
     }
