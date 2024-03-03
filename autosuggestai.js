@@ -259,8 +259,9 @@ function idleNow() {
         const currentBlockText = currentBlock.attributes.content
         const suggestionTextPromise = getSuggestionPromise(currentBlockText)
         suggestionState = 'inactive-asked-for-suggestion'
-        suggestionTextPromise.then((suggestionText) => {
-            console.log("Got some suggestion: " + suggestionText)
+        suggestionTextPromise.then((text) => {
+            console.log("Got some suggestion: " + text)
+            suggestionText = text
             suggestionState = 'inactive-got-suggestion'
             // should show the suggestion now and then 
             // add a keyboard handler to look basically any key
