@@ -101,8 +101,9 @@ function typeText(TypingText, DelaySec) {
 function getSuggestionPromise(existingText) {
     return new Promise((resolve) => {
         setTimeout(() => {
-            resolve("Dummy suggestion");
-        }, 1000);
+            // dummy text plus a random number so they are not all the same
+            resolve("Dummy suggestion" + Math.floor(Math.random() * 1000));
+        }, 1000); // simulating the delay to get text from the ai
     });
 }
 function insertTextIntoCurrentBlock(text) {
@@ -133,6 +134,20 @@ function insertTextIntoCurrentBlock(text) {
     wp.data.dispatch('core/block-editor').updateBlockAttributes(selectedBlock.clientId, {
         content: newContent,
     });
+
+
+    // now try to move the cursor
+
+    // Place the selection at the end of the inserted text
+    const blockClientId = selectedBlock.clientId;
+    if (selectedBlock.name === 'core/paragraph') {    
+        cursorPosition = newContent.length
+        wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", cursorPosition, cursorPosition)
+        
+    } else {
+        console.warn('Cursor adjustment is not supported for this block type.');
+    }
+
 }
 
 const tabHandler = (event) => {
@@ -156,33 +171,45 @@ const tabHandler = (event) => {
             // typeText(suggestionText,1,currentBlockElement);
 
             const currentBlockClientId = wp.data.select('core/block-editor').getSelectedBlockClientId();
-            insertTextIntoCurrentBlock('Additional text to be added.');
+            insertTextIntoCurrentBlock(suggestionText);
 
 
-            currentBlockElement.dispatchEvent(new KeyboardEvent('keydown', {
-                key: 'Control', // ctrl key
-                keyCode: 17, // keyCode 17 represents ctrl 
-                which: 17, // which is an alias for keyCode
-            }));
+            currentBlockElement.focus();
 
-            currentBlockElement.dispatchEvent(new KeyboardEvent('keydown', {
-                key: 'End', // home key
-                keyCode: 36, // keyCode 36 represents home
-                which: 36, // which is an alias for keyCode 
-            }));
+            // Create a range and set it to the end of the content
+            const range = document.createRange();
+            const selection = window.getSelection();
+            range.selectNodeContents(currentBlockElement);
+            range.collapse(false); // False collapses the range to its end, true to its start.
+            selection.removeAllRanges();
+            selection.addRange(range);
+        
 
-            // release all pressed keys
-            currentBlockElement.dispatchEvent(new KeyboardEvent('keyup', {
-                key: 'Control', // ctrl key
-                keyCode: 17, // keyCode 17 represents ctrl 
-                which: 17, // which is an alias for keyCode
-            }));
 
-            currentBlockElement.dispatchEvent(new KeyboardEvent('keyup', {
-                key: 'End', // end key
-                keyCode: 36, // keyCode 36 represents home
-                which: 36, // which is an alias for keyCode 
-            }));
+            // currentBlockElement.dispatchEvent(new KeyboardEvent('keydown', {
+            //     key: 'Control', // ctrl key
+            //     keyCode: 17, // keyCode 17 represents ctrl 
+            //     which: 17, // which is an alias for keyCode
+            // }));
+
+            // currentBlockElement.dispatchEvent(new KeyboardEvent('keydown', {
+            //     key: 'End', // home key
+            //     keyCode: 36, // keyCode 36 represents home
+            //     which: 36, // which is an alias for keyCode 
+            // }));
+
+            // // release all pressed keys
+            // currentBlockElement.dispatchEvent(new KeyboardEvent('keyup', {
+            //     key: 'Control', // ctrl key
+            //     keyCode: 17, // keyCode 17 represents ctrl 
+            //     which: 17, // which is an alias for keyCode
+            // }));
+
+            // currentBlockElement.dispatchEvent(new KeyboardEvent('keyup', {
+            //     key: 'End', // end key
+            //     keyCode: 36, // keyCode 36 represents home
+            //     which: 36, // which is an alias for keyCode 
+            // }));
 
 
 
