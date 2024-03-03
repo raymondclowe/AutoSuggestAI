@@ -64,12 +64,13 @@ let suggestionState = 'active';
 let suggestionText;
 
 function getSuggestionPromise(existingText) {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            // dummy text plus a random number so they are not all the same
-            resolve("Dummy suggestion" + Math.floor(Math.random() * 1000));
-        }, 1000); // simulating the delay to get text from the ai
-    });
+    // returns a promie to a fetch from the 
+
+
+    why a promise? why not just return the text here?
+
+
+    
 }
 function insertTextIntoCurrentBlock(text) {
     // Get the selected block
@@ -167,7 +168,9 @@ function idleNow() {
         // get the text of the current wp editor block.
         const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
         const currentBlockText = currentBlock.attributes.content
-        const suggestionTextPromise = getSuggestionPromise(currentBlockText)
+        const currentPostTitle = '# ' + wp.data.select("core/editor").getEditedPostAttribute('title') + '\n\n';
+
+        const suggestionTextPromise = getSuggestionPromise(currentPostTitle + currentBlockText)
         suggestionState = 'inactive-asked-for-suggestion'
         suggestionTextPromise.then((text) => {
             console.log("Got some suggestion: " + text)
@@ -187,6 +190,12 @@ function idleNow() {
             // if the selection is just a single cursor, and not a range, then
             // exit as we don't want to mess with the text if the user is highlighting
             if (selection.isCollapsed !== true) {
+                return;
+            }
+
+            // if the selection is not at the end of the paragraph, then exit
+            if (selection.anchorNode!== nearestPTag.childNodes[0]) {
+                console.log("idle but not end of paragraph")
                 return;
             }
 
