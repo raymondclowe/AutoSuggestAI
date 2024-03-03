@@ -24,12 +24,18 @@
 // suggested text is removed and the
 // state becomes State 1.
 
+// get the API key after a 10 second delay
 let myApiKey;
-
-fetch('/index.php?rest_route=/autosuggestai/v1/apikey').then(res => res.text()).then(key => {
-    myApiKey = key;
-    console.log(' key is ' + myApiKey)
-});
+setTimeout(() => {
+    fetch('/index.php?rest_route=/autosuggestai/v1/apikey',{
+        headers: new Headers({
+          'X-WP-Nonce': autosuggestai.api_nonce
+        })
+      }).then(res => res.text()).then(key => {
+        myApiKey = key;
+        console.log(' key is ' + myApiKey)
+    });
+}, 10000);
 
 
 let thePrompt = `
@@ -52,51 +58,10 @@ You will return only the extention text, without including the original incomple
 `;
 
 
-
-
-
-
 let idle = false;
 let idleTimeout;
 let suggestionState = 'active';
 let suggestionText;
-
-function typeText(TypingText, DelaySec) {
-    const focusElement = () => {
-        if (!document.hasFocus()) {
-            window.focus();
-        }
-    };
-
-    const typeCharacter = (char) => {
-        const event = new InputEvent('input', {
-            bubbles: true,
-            cancelable: true,
-            composed: true,
-            data: char,
-            inputType: 'insertText',
-        });
-
-        const target = document.activeElement;
-        target.textContent += char;
-        target.dispatchEvent(event);
-    };
-
-    const typeTextWithDelay = (text) => {
-        Array.from(text).forEach((char, index) => {
-            setTimeout(() => {
-                typeCharacter(char);
-            }, 100 * index);
-        });
-    };
-
-    focusElement();
-
-    setTimeout(() => {
-        typeTextWithDelay(TypingText);
-    }, DelaySec * 1000);
-}
-
 
 function getSuggestionPromise(existingText) {
     return new Promise((resolve) => {
@@ -107,8 +72,6 @@ function getSuggestionPromise(existingText) {
     });
 }
 function insertTextIntoCurrentBlock(text) {
-
-
     // Get the selected block
     const selectedBlock = wp.data.select('core/block-editor').getSelectedBlock();
 
@@ -136,8 +99,6 @@ function insertTextIntoCurrentBlock(text) {
     });
 
 
-    // now try to move the cursor
-
     // Place the selection at the end of the inserted text
     const blockClientId = selectedBlock.clientId;
     if (selectedBlock.name === 'core/paragraph') {    
@@ -155,64 +116,13 @@ const tabHandler = (event) => {
         if (event.key === 'Tab') {
             // do not do the default tab behaviour
             event.preventDefault();
+
             // replace the current block with the suggestion
             // and set the state to active
             suggestionState = 'active';
             const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
 
-            // wp.data.dispatch('core/block-editor').updateBlockAttributes(currentBlock.clientId, {
-            //     content: currentBlock.attributes.content + suggestionText,
-            // });
-
-            // set the focus to the current block by finding the element in the canvas, focusing it and sending a keypress to it
-            const currentBlockElement = getcurrentElementFromCanvas();
-            currentBlockElement.focus();
-
-            // typeText(suggestionText,1,currentBlockElement);
-
-            const currentBlockClientId = wp.data.select('core/block-editor').getSelectedBlockClientId();
             insertTextIntoCurrentBlock(suggestionText);
-
-
-            currentBlockElement.focus();
-
-            // Create a range and set it to the end of the content
-            const range = document.createRange();
-            const selection = window.getSelection();
-            range.selectNodeContents(currentBlockElement);
-            range.collapse(false); // False collapses the range to its end, true to its start.
-            selection.removeAllRanges();
-            selection.addRange(range);
-        
-
-
-            // currentBlockElement.dispatchEvent(new KeyboardEvent('keydown', {
-            //     key: 'Control', // ctrl key
-            //     keyCode: 17, // keyCode 17 represents ctrl 
-            //     which: 17, // which is an alias for keyCode
-            // }));
-
-            // currentBlockElement.dispatchEvent(new KeyboardEvent('keydown', {
-            //     key: 'End', // home key
-            //     keyCode: 36, // keyCode 36 represents home
-            //     which: 36, // which is an alias for keyCode 
-            // }));
-
-            // // release all pressed keys
-            // currentBlockElement.dispatchEvent(new KeyboardEvent('keyup', {
-            //     key: 'Control', // ctrl key
-            //     keyCode: 17, // keyCode 17 represents ctrl 
-            //     which: 17, // which is an alias for keyCode
-            // }));
-
-            // currentBlockElement.dispatchEvent(new KeyboardEvent('keyup', {
-            //     key: 'End', // end key
-            //     keyCode: 36, // keyCode 36 represents home
-            //     which: 36, // which is an alias for keyCode 
-            // }));
-
-
-
 
         }
     }
@@ -267,7 +177,6 @@ function idleNow() {
             // add a keyboard handler to look basically any key
             // and it will do tab or non tab
 
-
             currentElement = getcurrentElementFromCanvas();
             // Find the nearest parent paragraph tag
             nearestPTag = currentElement.closest('p');
@@ -285,30 +194,15 @@ function idleNow() {
             let anchorNode = selection.anchorNode;
             let anchorOffset = selection.anchorOffset;
 
-
             // No selection, so insert at cursor position
-            let textNode = document.createTextNode(suggestionText);
+            let textNode = document.createTextNode(" " + suggestionText + " ");
             let italicNode = document.createElement('i');
             italicNode.style.color = 'grey';
             italicNode.appendChild(textNode);
             nearestPTag.insertBefore(italicNode, anchorNode);
 
-            // Adjust anchor offset to account for inserted text
-            anchorOffset += suggestionText.length;
-
-
-            // Restore the selection or cursor position
-            selection.removeAllRanges();
-            selection.setBaseAndExtent(anchorNode, anchorOffset, anchorNode, anchorOffset);
-
-
             // wait for a tab
             document.addEventListener('keydown', tabHandler);
-
-
-
-
-
         })
     }
 }

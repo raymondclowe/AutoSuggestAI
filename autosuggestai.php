@@ -14,6 +14,9 @@ function autosuggestai_enqueue_scripts()
 {
 
   wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__));
+  wp_localize_script('autosuggestai', 'autosuggestai', array(
+    'api_nonce' => wp_create_nonce('wp_rest'),
+  ));
 
 }
 
@@ -109,6 +112,8 @@ function autosuggestai_get_api_key()
 
 }
 
+// allow REST password authentication even with no ssl (so dev environment works)
+// add_filter( 'wp_is_application_passwords_available', '__return_true' );
 
 
 ?>
