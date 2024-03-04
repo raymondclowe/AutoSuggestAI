@@ -1,4 +1,4 @@
-// Version: 0.2
+// Version: 0.3
 
 // There are various possible states and need to keep track of them.
 // State 1 is active, in which case nothing is to be suggested and
