@@ -1,4 +1,4 @@
-// Version: 1.2
+// Version: 1.3
 
 // There are various possible states and need to keep track of them.
 // State 1 is active, in which case nothing is to be suggested and
@@ -201,6 +201,7 @@ const tabHandler = (event) => {
 //  the editor, since that code exists in a separate DOM context within the iframe.
 
 function getcurrentElementFromCanvas() {
+    let currentElement;
     // try the simple way first:
     currentElement = document.getElementsByClassName('is-selected')[0]
     // if it failed try the canvas method
@@ -208,8 +209,7 @@ function getcurrentElementFromCanvas() {
         const editorCanvasIiframe = document.getElementsByName('editor-canvas')[0];
         const editorCanvasDoc = editorCanvasIiframe.contentDocument;
         const paragraphs = editorCanvasDoc.getElementsByTagName('p');
-
-        let currentElement = null
+        
         // Access the paragraphs within the iframe
         for (let i = 0; i < paragraphs.length; i++) {
             console.log(paragraphs[i].textContent);
