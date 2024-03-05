@@ -30,4 +30,7 @@ Suggested words appear in grey and are not actually part of the post until you p
 You only get suggestions when your cursor is at the end of a paragraph, and the last character is a space meaning you have completed a word, or you are at the beginning of a blank paragraph.
 
 
+## Todo
+
+Fix lots of bugs and special cases
 
