@@ -1,4 +1,4 @@
-// Version: 0.3
+// Version: 0.4
 
 // There are various possible states and need to keep track of them.
 // State 1 is active, in which case nothing is to be suggested and
@@ -26,14 +26,25 @@
 
 // get the API key after a 10 second delay
 let myApiKey;
+let AIDelay;
+let AIBackEndURL;
+let AIPromptTemplate;
+
 setTimeout(() => {
-    fetch('/index.php?rest_route=/autosuggestai/v1/apikey',{
+    fetch('/index.php?rest_route=/autosuggestai/v1/apikey', {
         headers: new Headers({
-          'X-WP-Nonce': autosuggestai.api_nonce
+            'X-WP-Nonce': autosuggestai.api_nonce
         })
-      }).then(res => res.text()).then(key => {
-        myApiKey = key;
-        console.log(' key is ' + myApiKey)
+    }).then(res => res.json()).then(data => {
+        myApiKey = data.apikey;
+        let AIDelay = data.AIDelay;
+        let AIBackEndURL = data.AIBackEndURL;
+        let AIPromptTemplate = data.AIPromptTemplate;
+
+        console.log('API key is ' + myApiKey);
+        console.log('AI Delay is ' + AIDelay);
+        console.log('AI Backend URL is ' + AIBackEndURL);
+        console.log('AI Prompt Template is ' + AIPromptTemplate);
     });
 }, 10000);
 
