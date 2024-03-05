@@ -1,4 +1,4 @@
-// Version: 1.1
+// Version: 1.2
 
 // There are various possible states and need to keep track of them.
 // State 1 is active, in which case nothing is to be suggested and
@@ -40,8 +40,8 @@ setTimeout(() => {
         // get the integer value of the delay, it will be a string in the json data, so turn to a number
         AIDelay = parseInt(data.AIDelay);
 
-        
-        
+
+
         // let AIBackEndURL = data.AIBackEndURL;
         // let AIPromptTemplate = data.AIPromptTemplate;
 
@@ -84,7 +84,7 @@ function getSuggestionPromise(existingText) {
     return new Promise((resolve) => {
         // create the total prompt using the template, the prompt, and the existing text.
         const prompt = promptTemplate.replace('{prompt}', thePrompt + existingText);
-        console.log('Prompt is'+ prompt);
+        console.log('Prompt is' + prompt);
         const data = {
             model: 'mistral-tiny',
             messages: [
@@ -111,10 +111,10 @@ function getSuggestionPromise(existingText) {
             },
             body: JSON.stringify(data)
         })
-        .then(res => res.json())
-        .then(data => {             
-             resolve(data.choices[0].message.content.trim());
-         });
+            .then(res => res.json())
+            .then(data => {
+                resolve(data.choices[0].message.content.trim());
+            });
     });
 }
 
@@ -160,10 +160,10 @@ function insertTextIntoCurrentBlock(text) {
 
     // Place the selection at the end of the inserted text
     const blockClientId = selectedBlock.clientId;
-    if (selectedBlock.name === 'core/paragraph') {    
+    if (selectedBlock.name === 'core/paragraph') {
         cursorPosition = newContent.length
         wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", cursorPosition, cursorPosition)
-        
+
     } else {
         console.warn('Cursor adjustment is not supported for this block type.');
     }
@@ -201,21 +201,26 @@ const tabHandler = (event) => {
 //  the editor, since that code exists in a separate DOM context within the iframe.
 
 function getcurrentElementFromCanvas() {
-    const editorCanvasIiframe = document.getElementsByName('editor-canvas')[0];
-    const editorCanvasDoc = editorCanvasIiframe.contentDocument;
-    const paragraphs = editorCanvasDoc.getElementsByTagName('p');
+    // try the simple way first:
+    let currentElement = document.getElementsByClassName('is-selected')[0].textContent
+    // if it failed try the canvas method
+    if (currentElement === undefined) {
+        const editorCanvasIiframe = document.getElementsByName('editor-canvas')[0];
+        const editorCanvasDoc = editorCanvasIiframe.contentDocument;
+        const paragraphs = editorCanvasDoc.getElementsByTagName('p');
 
-    let currentElement = null
-    // Access the paragraphs within the iframe
-    for (let i = 0; i < paragraphs.length; i++) {
-        console.log(paragraphs[i].textContent);
-        // check if the paragraph has the class '.is-selected'
-        if (paragraphs[i].classList.contains('is-selected')) {
-            currentElement = paragraphs[i];
-            break;
-        }
+        let currentElement = null
+        // Access the paragraphs within the iframe
+        for (let i = 0; i < paragraphs.length; i++) {
+            console.log(paragraphs[i].textContent);
+            // check if the paragraph has the class '.is-selected'
+            if (paragraphs[i].classList.contains('is-selected')) {
+                currentElement = paragraphs[i];
+                break;
+            }
 
-    };
+        };
+    }
     return currentElement
 }
 
@@ -248,7 +253,7 @@ function idleNow() {
         const currentBlockText = currentBlock.attributes.content
         // if the currentBlockText is blank, then go get the preceding block text instead, even if it is not a paragraph
         if (currentBlockText.length === 0) {
-            const previousBlock = wp.data.select('core/block-editor').getBlocks()[wp.data.select('core/block-editor').getBlocks().indexOf(currentBlock) - 1]         
+            const previousBlock = wp.data.select('core/block-editor').getBlocks()[wp.data.select('core/block-editor').getBlocks().indexOf(currentBlock) - 1]
             currentBlockText = previousBlock.attributes.content
         }
         const title = '# ' + wp.data.select("core/editor").getEditedPostAttribute('title') + '\n\n';
@@ -257,7 +262,7 @@ function idleNow() {
         suggestionTextPromise.then((text) => {
             console.log("Got some suggestion: " + text)
             // check if the state is still inactive asked for suggestion, as the user may have typed and so it will be active now. if it is the wrong status then we need to exit/return and give up on the suggestion.
-            if (suggestionState!== 'inactive-asked-for-suggestion') {
+            if (suggestionState !== 'inactive-asked-for-suggestion') {
                 console.log("Suggestion state is wrong, so we are giving up on the suggestion")
                 return;
             }
