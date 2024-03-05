@@ -224,7 +224,7 @@ function resetIdle() {
     idle = false;
     suggestionState = "active"
 
-    idleTimeout = setTimeout(idleNow, 2000);
+    idleTimeout = setTimeout(idleNow, AIDelay * 1000);
 }
 
 window.addEventListener('mousemove', resetIdle);

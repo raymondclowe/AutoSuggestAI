@@ -49,6 +49,7 @@ function autosuggestai_settings_page()
   add_settings_field('AIDelay', 'AI Delay', 'autosuggestai_delay_callback', 'autosuggestai', 'autosuggestai_section');
   add_settings_field('AIBackEndURL', 'AI Backend URL', 'autosuggestai_backend_url_callback', 'autosuggestai', 'autosuggestai_section');
   add_settings_field('AIPromptTemplate', 'AI Prompt Template', 'autosuggestai_prompt_template_callback', 'autosuggestai', 'autosuggestai_section');
+  add_settings_field('AIPrompt', 'AI Prompt', 'autosuggestai_prompt_callback', 'autosuggestai', 'autosuggestai_section');
 
   submit_button();
 
@@ -62,10 +63,28 @@ add_action('admin_init', 'autosuggestai_admin_init');
 
 function autosuggestai_admin_init()
 {
-  register_setting('autosuggestai_options', 'apikey', 'sk-YOURAPIKEY');
-  register_setting('autosuggestai_options', 'AIDelay', '5');
-  register_setting('autosuggestai_options', 'AIBackendURL', 'https://api.mistral.ai/v1/chat/completions');
-  register_setting('autosuggestai_options', 'AIPromptTemplate', '<s>[INST] {prompt} [/INST]');
+  
+
+  register_setting('autosuggestai_options', 'apikey', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field','default' => 'sk-YOURAPIKEY',));
+  register_setting('autosuggestai_options', 'AIDelay', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field','default' => 5,));
+  register_setting('autosuggestai_options', 'AIBackEndURL', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field','default' => 'https://api.mistral.ai/v1/chat/completions',));
+  register_setting('autosuggestai_options', 'AIPromptTemplate', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field','default' => '<s>[INST] {prompt} [/INST]') );
+  register_setting('autosuggestai_options', 'AIPrompt', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field','default' => "You are an automated writing assistant who will suggest the next piece of text to write after an example given to you. The suggested text will always be brief, meaningful, sensible, in keeping with the style.
+
+  Examples: if you are given the text \"The cat sat on the \" then you will reply \"mat.\"
+  
+  If you are given the text \"The rain in Spain falls \" then you will reply with \"mainly on the plain\".
+  
+  If you are given the text \"The sun rises in the east \" then you will reply with \"and sets in the west\".
+  
+  If you are given the text \"The dog \" then you will reply with \"barks\".
+  
+  If you are given the text \"Four score and seven years ago \" then you will reply with \" our forefathers brought for a new nation\".
+  
+  You will be given the title of the article from which the text comes, to provide you with context, then the incomplete paragraph that needs extending.
+  
+  You will return only the extention text, without including the original incomplete paragraph.
+  ") );
 
   add_settings_section(
     'autosuggestai_main',
@@ -91,9 +110,9 @@ function autosuggestai_admin_init()
   );
 
   add_settings_field(
-    'AIBackendURL',
+    'AIBackEndURL',
     'AI Backend URL',
-    'aibackendurl_callback',
+    'AIBackEndURL_callback',
     'autosuggestai',
     'autosuggestai_main'
   );
@@ -102,6 +121,13 @@ function autosuggestai_admin_init()
     'AIPromptTemplate',
     'AI Prompt Template',
     'aiprompttemplate_callback',
+    'autosuggestai',
+    'autosuggestai_main'
+  );
+  add_settings_field(
+    'AIPrompt',
+    'AI Prompt',
+    'aiprompt_callback',
     'autosuggestai',
     'autosuggestai_main'
   );
@@ -139,7 +165,8 @@ function AIBackEndURL_callback()
 
   $value = get_option('AIBackEndURL');
 
-  echo '<input type="text" id="AIBackEndURL" name="AIBackEndURL" value="' . esc_attr($value) . '" size="40" /><a href="#" id="setdefaulackendurl" onclick="document.getElementById(\'AIBackEndURL\').value = \'https://api.mistral.ai/v1/chat/completions\'">Set default to mistral</a>';
+  echo '<input type="text" id="AIBackEndURL" name="AIBackEndURL" value="' . esc_attr($value) . '" size="40" />';
+  echo '<a href="#" id="setdefaulackendurl" onclick="document.getElementById(\'AIBackEndURL\').value = \'https://api.mistral.ai/v1/chat/completions\'">Set default to mistral</a>';
 
 }
 
@@ -148,6 +175,31 @@ function AIPromptTemplate_callback()
 
   $value = get_option('AIPromptTemplate');
   echo '<input type="text" id="AIPromptTemplate" name="AIPromptTemplate" value="' . esc_attr($value) . '" size="40" /><a href="#" id="setdefaultprompt" onclick="document.getElementById(\'AIPromptTemplate\').value = \'<s>[INST] {prompt} [/INST]\'">set default to mistral</a>';
+
+}
+
+function AIPrompt_callback()
+{
+
+  $value = get_option('AIPrompt');
+  echo '<input type="textarea" id="AIPrompt" name="AIPrompt" value="' . esc_attr($value) . '" size="40" />';
+
+  echo '<a href="#" id="setdefaultprompt" onclick="document.getElementById(\'AIPrompt\').value = \'You are an automated writing assistant who will suggest the next piece of text to write after an example given to you. The suggested text will always be brief, meaningful, sensible, in keeping with the style.
+
+  Examples: if you are given the text \"The cat sat on the \" then you will reply \"mat.\"
+  
+  If you are given the text \"The rain in Spain falls \" then you will reply with \"mainly on the plain\".
+  
+  If you are given the text \"The sun rises in the east \" then you will reply with \"and sets in the west\".
+  
+  If you are given the text \"The dog \" then you will reply with \"barks\".
+  
+  If you are given the text \"Four score and seven years ago \" then you will reply with \" our forefathers brought for a new nation\".
+  
+  You will be given the title of the article from which the text comes, to provide you with context, then the incomplete paragraph that needs extending.
+  
+  You will return only the extention text, without including the original incomplete paragraph.
+  \'>set default to mistral</a>';
 
 }
 
@@ -170,7 +222,8 @@ function autosuggestai_get_api_key()
     'apikey' => htmlspecialchars(get_option('apikey')),
     'AIDelay' => htmlspecialchars(get_option('AIDelay')),
     'AIBackEndURL' => htmlspecialchars(get_option('AIBackEndURL')),
-    'AIPromptTemplate' => htmlspecialchars(get_option('AIPromptTemplate'))
+    'AIPromptTemplate' => htmlspecialchars(get_option('AIPromptTemplate')),
+    'AIPrompt' => htmlspecialchars(get_option('AIPrompt'))
   );
 }
 
