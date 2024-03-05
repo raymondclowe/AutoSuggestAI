@@ -2,7 +2,7 @@
 /**
  * Plugin Name: AutoSuggestAI
  * Description: Auto suggest text in the block editor using AI
- * Version: 0.6
+ * Version: 0.7
  * Author: Raymond Lowe
  * License: GPL2
  * URL: https://github.com/raymondclowe/AutoSuggestAI
