@@ -1,4 +1,4 @@
-// Version: 1.3
+// Version: 1.3.1
 
 // There are various possible states and need to keep track of them.
 // State 1 is active, in which case nothing is to be suggested and
@@ -294,8 +294,8 @@ function idleNow() {
             let italicNode = document.createElement('i');
             italicNode.style.color = 'grey';
             italicNode.appendChild(textNode);
-            nearestPTag.insertBefore(italicNode, anchorNode);
-
+//             nearestPTag.insertBefore(italicNode, anchorNode);
+nearestPTag.innerHTML = nearestPTag.innerHTML + "<span style='color:grey'><i>"+suggestionText+"</i></span>"
             // wait for a tab
             document.addEventListener('keydown', tabHandler);
         })
