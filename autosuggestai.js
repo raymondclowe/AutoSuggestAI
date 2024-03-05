@@ -202,7 +202,7 @@ const tabHandler = (event) => {
 
 function getcurrentElementFromCanvas() {
     // try the simple way first:
-    let currentElement = document.getElementsByClassName('is-selected')[0].textContent
+    currentElement = document.getElementsByClassName('is-selected')[0]
     // if it failed try the canvas method
     if (currentElement === undefined) {
         const editorCanvasIiframe = document.getElementsByName('editor-canvas')[0];
