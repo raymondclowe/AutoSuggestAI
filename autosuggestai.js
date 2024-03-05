@@ -1,4 +1,4 @@
-// Version: 1.3.1
+// Version: 1.4
 
 // There are various possible states and need to keep track of them.
 // State 1 is active, in which case nothing is to be suggested and
@@ -53,44 +53,50 @@ setTimeout(() => {
 }, 10000);
 
 
-const promptTemplate = `<s>[INST] {prompt} [/INST]`;
+const promptTemplate = `[INST] {prompt} [/INST]`; // <s> only needed for multi turn
 
 const thePrompt = `
-You are an automated writing assistant who will suggest the next piece of text to write after an example given to you. The suggested text will always be brief, meaningful, sensible, in keeping with the style.
+You are an automated writing assistant who will suggest the next piece of text to write after an example given to you. The suggested text you provide will always be brief, meaningful, sensible, in keeping with the style of the example. You will be given the title of the piece of writing, one or more preceding paragraphs, and the incomplete paragraph that needs extending. The place to add text will be marked with three dots like this ...
 
-Examples: if you are given the text "The cat sat on the " then you will reply "mat."
+Examples: if you are given the text "The cat sat on the ... " then you will reply "mat."
 
-If you are given the text "The rain in Spain falls " then you will reply with "mainly on the plain".
+If you are given the text "The rain in Spain falls ... " then you will reply with "mainly on the plain".
 
-If you are given the text "The sun rises in the east " then you will reply with "and sets in the west".
+If you are given the text "The sun rises in the east ... " then you will reply with "and sets in the west".
 
-If you are given the text "The dog " then you will reply with "barks".
+If you are given the text "The dog ... " then you will reply with "barks".
 
-If you are given the text "Four score and seven years ago " then you will reply with " our forefathers brought for a new nation".
+If you are given the text "Four score and seven years ago ... " then you will reply with "our forefathers brought for a new nation".
 
-You will be given the title of the article from which the text comes, to provide you with context, then the incomplete paragraph that needs extending.
+You will return only the suggested extention of the text, without including the original incomplete paragraph.
 
-You will return only the extention text, without including the original incomplete paragraph.
+Here is the title of the piece of writing:
+{title}
 
-The text you need to extend follows, starting with the title marked by a hash then the incomplete paragraph you will extend.
+Here is the preceding paragraphs for context:
+{context}
 
->`;
+Here is the text to be extended:
+>{text}`;
 
 const mistralApiUrl = 'https://api.mistral.ai/v1/chat/completions';
 
 
-function getSuggestionPromise(existingText) {
+function getSuggestionPromise(title, context, existingText) {
     // return a promise to a fetch to the mistral api
     return new Promise((resolve) => {
         // create the total prompt using the template, the prompt, and the existing text.
-        const prompt = promptTemplate.replace('{prompt}', thePrompt + existingText);
-        console.log('Prompt is' + prompt);
+        instruction = thePrompt.replace('{title}', title).replace('{context}', context).replace('{text}', existingText.trim() + " ... ");
+
+        messageContent = promptTemplate.replace('{prompt}', instruction)
+
+        console.log('messageContent is' + messageContent);
         const data = {
             model: 'mistral-tiny',
             messages: [
                 {
                     role: 'user',
-                    content: prompt
+                    content: messageContent
                 }
             ],
             temperature: 0.6,
@@ -209,7 +215,7 @@ function getcurrentElementFromCanvas() {
         const editorCanvasIiframe = document.getElementsByName('editor-canvas')[0];
         const editorCanvasDoc = editorCanvasIiframe.contentDocument;
         const paragraphs = editorCanvasDoc.getElementsByTagName('p');
-        
+
         // Access the paragraphs within the iframe
         for (let i = 0; i < paragraphs.length; i++) {
             console.log(paragraphs[i].textContent);
@@ -250,14 +256,27 @@ function idleNow() {
             console.log("Last character is not a whitespace, so we are not suggesting")
             return;
         }
-        const currentBlockText = currentBlock.attributes.content
+        let currentBlockText = currentBlock.attributes.content
+        let precedingBlockText = ''
+        const currentBlockIndexNumber = wp.data.select('core/block-editor').getBlocks().indexOf(currentBlock)
+        console.log('currentBlockIndexNumber:' + currentBlockIndexNumber)
+
         // if the currentBlockText is blank, then go get the preceding block text instead, even if it is not a paragraph
         if (currentBlockText.length === 0) {
-            const previousBlock = wp.data.select('core/block-editor').getBlocks()[wp.data.select('core/block-editor').getBlocks().indexOf(currentBlock) - 1]
-            currentBlockText = previousBlock.attributes.content
+            if (currentBlockIndexNumber >= 1) {
+            currentBlockText = wp.data.select('core/block-editor').getBlocks()[currentBlockIndexNumber - 1].attributes.content // actually the previous block
+            }
+            if (currentBlockIndexNumber >= 2) {
+                precedingBlockText = wp.data.select('core/block-editor').getBlocks()[currentBlockIndexNumber - 2].attributes.content
+            }
+        } else {
+            if (currentBlockIndexNumber >= 1) {
+                precedingBlockText = wp.data.select('core/block-editor').getBlocks()[currentBlockIndexNumber - 1].attributes.content
+            }
         }
-        const title = '# ' + wp.data.select("core/editor").getEditedPostAttribute('title') + '\n\n';
-        const suggestionTextPromise = getSuggestionPromise(title + currentBlockText)
+        const title = wp.data.select("core/editor").getEditedPostAttribute('title');
+
+        const suggestionTextPromise = getSuggestionPromise(title, precedingBlockText, currentBlockText)
         suggestionState = 'inactive-asked-for-suggestion'
         suggestionTextPromise.then((text) => {
             console.log("Got some suggestion: " + text)
@@ -294,8 +313,8 @@ function idleNow() {
             let italicNode = document.createElement('i');
             italicNode.style.color = 'grey';
             italicNode.appendChild(textNode);
-//             nearestPTag.insertBefore(italicNode, anchorNode);
-nearestPTag.innerHTML = nearestPTag.innerHTML + "<span style='color:grey'><i>"+suggestionText+"</i></span>"
+            //             nearestPTag.insertBefore(italicNode, anchorNode);
+            nearestPTag.innerHTML = nearestPTag.innerHTML + "<span style='color:grey'><i>" + suggestionText + "</i></span>"
             // wait for a tab
             document.addEventListener('keydown', tabHandler);
         })
