@@ -53,7 +53,9 @@ setTimeout(() => {
 }, 10000);
 
 
-let thePrompt = `
+const promptTemplate = `<s>[INST] {prompt} [/INST]`;
+
+const thePrompt = `
 You are an automated writing assistant who will suggest the next piece of text to write after an example given to you. The suggested text will always be brief, meaningful, sensible, in keeping with the style.
 
 Examples: if you are given the text "The cat sat on the " then you will reply "mat."
@@ -72,21 +74,60 @@ You will return only the extention text, without including the original incomple
 
 `;
 
+const mistralApiUrl = 'https://api.mistral.ai/v1/chat/completions';
+
+
+function getSuggestionPromise(existingText) {
+    // return a promise to a fetch to the mistral api
+    return new Promise((resolve) => {
+        // create the total prompt using the template, the prompt, and the existing text.
+        const prompt = promptTemplate.replace('{prompt}', thePrompt + existingText);
+        console.log('Prompt is'+ prompt);
+        const data = {
+            model: 'mistral-tiny',
+            messages: [
+                {
+                    role: 'user',
+                    content: prompt
+                }
+            ],
+            temperature: 0.6,
+            max_tokens: 100,
+            top_p: 0.9,
+            // top_k: 50,
+            stream: false,
+            // unsafe_prompt: false,
+            random_seed: null
+        };
+        // Make the API request
+        return fetch(mistralApiUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${myApiKey}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(data => {             
+             resolve(data.choices[0].message.content.trim());
+         });
+    });
+}
+
+
 
 let idle = false;
 let idleTimeout;
 let suggestionState = 'active';
 let suggestionText;
 
-function getSuggestionPromise(existingText) {
-    console.log("Pretending to get a suggestions, will return in 2 seconds")
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            // dummy text plus a random number so they are not all the same
-            resolve("Dummy suggestion" + Math.floor(Math.random() * 1000));
-        }, 2000); // simulating the delay to get text from the ai
-    });
-}
+
+
+
+
+
 function insertTextIntoCurrentBlock(text) {
     // Get the selected block
     const selectedBlock = wp.data.select('core/block-editor').getSelectedBlock();
