@@ -1,4 +1,4 @@
-// Version: 0.7
+// Version: 1.1
 
 // There are various possible states and need to keep track of them.
 // State 1 is active, in which case nothing is to be suggested and
@@ -72,7 +72,9 @@ You will be given the title of the article from which the text comes, to provide
 
 You will return only the extention text, without including the original incomplete paragraph.
 
-`;
+The text you need to extend follows, starting with the title marked by a hash then the incomplete paragraph you will extend.
+
+>`;
 
 const mistralApiUrl = 'https://api.mistral.ai/v1/chat/completions';
 
@@ -244,7 +246,13 @@ function idleNow() {
             return;
         }
         const currentBlockText = currentBlock.attributes.content
-        const suggestionTextPromise = getSuggestionPromise(currentBlockText)
+        // if the currentBlockText is blank, then go get the preceding block text instead, even if it is not a paragraph
+        if (currentBlockText.length === 0) {
+            const previousBlock = wp.data.select('core/block-editor').getBlocks()[wp.data.select('core/block-editor').getBlocks().indexOf(currentBlock) - 1]         
+            currentBlockText = previousBlock.attributes.content
+        }
+        const title = '# ' + wp.data.select("core/editor").getEditedPostAttribute('title') + '\n\n';
+        const suggestionTextPromise = getSuggestionPromise(title + currentBlockText)
         suggestionState = 'inactive-asked-for-suggestion'
         suggestionTextPromise.then((text) => {
             console.log("Got some suggestion: " + text)
