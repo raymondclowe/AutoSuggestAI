@@ -26,9 +26,9 @@
 
 // get the API key after a 10 second delay
 let myApiKey;
-let AIDelay;
-let AIBackEndURL;
-let AIPromptTemplate;
+let AIDelay = 5;
+// let AIBackEndURL;
+// let AIPromptTemplate;
 
 setTimeout(() => {
     fetch('/index.php?rest_route=/autosuggestai/v1/apikey', {
@@ -37,14 +37,18 @@ setTimeout(() => {
         })
     }).then(res => res.json()).then(data => {
         myApiKey = data.apikey;
-        let AIDelay = data.AIDelay;
-        let AIBackEndURL = data.AIBackEndURL;
-        let AIPromptTemplate = data.AIPromptTemplate;
+        // get the integer value of the delay, it will be a string in the json data, so turn to a number
+        AIDelay = parseInt(data.AIDelay);
+
+        
+        
+        // let AIBackEndURL = data.AIBackEndURL;
+        // let AIPromptTemplate = data.AIPromptTemplate;
 
         console.log('API key is ' + myApiKey);
         console.log('AI Delay is ' + AIDelay);
-        console.log('AI Backend URL is ' + AIBackEndURL);
-        console.log('AI Prompt Template is ' + AIPromptTemplate);
+        // console.log('AI Backend URL is ' + AIBackEndURL);
+        // console.log('AI Prompt Template is ' + AIPromptTemplate);
     });
 }, 10000);
 
@@ -75,11 +79,12 @@ let suggestionState = 'active';
 let suggestionText;
 
 function getSuggestionPromise(existingText) {
+    console.log("Pretending to get a suggestions, will return in 2 seconds")
     return new Promise((resolve) => {
         setTimeout(() => {
             // dummy text plus a random number so they are not all the same
             resolve("Dummy suggestion" + Math.floor(Math.random() * 1000));
-        }, 1000); // simulating the delay to get text from the ai
+        }, 2000); // simulating the delay to get text from the ai
     });
 }
 function insertTextIntoCurrentBlock(text) {
@@ -177,11 +182,36 @@ function idleNow() {
     if (suggestionState = 'inactive-before-suggestion') { // the user has stopped typing, and we haven't got a suggestion yet
         // get the text of the current wp editor block.
         const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
+        // if the currentBlock is undefined as exist, the cursor must be on the title or 
+        // somewhere else on the screen.
+        if (currentBlock === undefined || currentBlock === null) {
+            suggestionState = 'active'
+            console.log("Cursor is on title or somewhere else")
+            return;
+        }
+
+        // if the current block is not a paragraph then exit.
+        if (currentBlock.name !== 'core/paragraph') {
+            console.error('Selected block is not a paragraph block.');
+            return;
+        }
+        // check if the last character of the current block is a whitespace, if it is not then
+        // exit as we only suggest when the user is pausing after a word. 
+        if (currentBlock.attributes.content.length > 0 && currentBlock.attributes.content[currentBlock.attributes.content.length - 1] !== " ") {
+
+            console.log("Last character is not a whitespace, so we are not suggesting")
+            return;
+        }
         const currentBlockText = currentBlock.attributes.content
         const suggestionTextPromise = getSuggestionPromise(currentBlockText)
         suggestionState = 'inactive-asked-for-suggestion'
         suggestionTextPromise.then((text) => {
             console.log("Got some suggestion: " + text)
+            // check if the state is still inactive asked for suggestion, as the user may have typed and so it will be active now. if it is the wrong status then we need to exit/return and give up on the suggestion.
+            if (suggestionState!== 'inactive-asked-for-suggestion') {
+                console.log("Suggestion state is wrong, so we are giving up on the suggestion")
+                return;
+            }
             suggestionText = text
             suggestionState = 'inactive-got-suggestion'
             // should show the suggestion now and then 
@@ -218,6 +248,8 @@ function idleNow() {
     }
 }
 
+// set the idle reset function, but if this is the first time this document has loaded
+// then set the delay to double.
 
 function resetIdle() {
     clearTimeout(idleTimeout);
@@ -230,3 +262,5 @@ function resetIdle() {
 window.addEventListener('mousemove', resetIdle);
 window.addEventListener('scroll', resetIdle);
 window.addEventListener('keydown', resetIdle);
+
+resetIdle();
