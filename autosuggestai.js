@@ -223,7 +223,7 @@ function insertTextIntoCurrentBlock(text) {
     if (selectedBlock.name === 'core/paragraph') {
         cursorPosition = newContent.length + 1; // Adjust cursor position to exclude the space
         wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", cursorPosition, cursorPosition);
-
+        
     } else {
         console.warn('Cursor adjustment is not supported for this block type.');
     }
@@ -304,6 +304,13 @@ function getcurrentElementFromCanvas() {
     return currentElement
 }
 
+async function moveCursorToEnd() {
+    // Wait for the selection change to complete
+    await await wp.data.dispatch('core/block-editor').selectionChange(wp.data.select('core/block-editor').getSelectedBlock().clientId, "content", wp.data.select('core/block-editor').getSelectedBlock().attributes.content.length,  wp.data.select('core/block-editor').getSelectedBlock().attributes.content.length);
+  
+
+  }
+
 function idleNow() {
     idle = true;
     console.log("Inactive")
@@ -376,12 +383,28 @@ function idleNow() {
                 return;
             }
 
-            
-            // make a duplicate copy of the nearestPTag so we can restore it later if suggestion is dismissed
-            originalNearestPTag = nearestPTag.cloneNode(true);
+          // make a duplicate copy of the nearestPTag so we can restore it later if suggestion is dismissed
+          originalNearestPTag = nearestPTag.cloneNode(true);
+
+          // add the suggestion text to the nearestPTag
+          nearestPTag.innerHTML += "<span style='color:grey'><i>" + suggestionText + "</i></span>";
+
+          // put the cursor back to the correct position based on the current block text length, without the suggestion.
+          setTimeout(() => {
+              (async () => {
+                console.log("Trying to move cursor")
+                  await moveCursorToEnd();
+                  const selection = window.getSelection();
+                  const range = document.createRange();
+                  range.setStart(nearestPTag, nearestPTag.childNodes.length);
+                  range.collapse(true);
+                  selection.removeAllRanges();
+                  selection.addRange(range);
+                  console.log("Finished Trying to move cursor")
+              })();
+          }, 1000);
 
 
-            nearestPTag.innerHTML = nearestPTag.innerHTML + "<span style='color:grey'><i>" + suggestionText + "</i></span>"
             // wait for a tab
             document.addEventListener('keydown', tabHandler);
         })
@@ -405,10 +428,12 @@ function resetIdle() {
     idleTimeout = setTimeout(idleNow, AIDelay * 1000);
 }
 
-window.addEventListener('mousemove', resetIdle);
-window.addEventListener('scroll', resetIdle);
+
+
 window.addEventListener('keydown', resetIdle);
-// can we check for lost focus? we should resetIdle in that case as well.
+window.addEventListener('scroll', resetIdle);
+window.addEventListener('mousedown', resetIdle);
+window.addEventListener('click', resetIdle);
 window.addEventListener('blur', resetIdle);
 
 
