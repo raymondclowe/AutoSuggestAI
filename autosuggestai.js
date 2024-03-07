@@ -352,7 +352,7 @@ function handleSuggestion(text) {
     oldContent = wp.data.select('core/block-editor').getSelectedBlock().attributes.content
 
     currentBlockId = wp.data.select('core/block-editor').getSelectedBlock().clientId;
-    insertTextIntoCurrentBlock("<span style=\"color:grey\"><i>" + suggestionText + "</i></span>")
+    insertTextIntoCurrentBlock("<i>" + suggestionText + "</i>")
     
     setTimeout(function() {
         moveCursorTo(oldContent.length);
