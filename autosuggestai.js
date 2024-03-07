@@ -184,6 +184,11 @@ let suggestionState = 'active';
 let suggestionText;
 
 
+function moveCursorTo(cursorPosition) {
+    console.log("Move cursor to " + cursorPosition)
+    wp.data.dispatch('core/block-editor').selectionChange(wp.data.select('core/block-editor').getSelectedBlock().clientId, "content", cursorPosition, cursorPosition);
+}
+    
 
 
 
@@ -346,9 +351,12 @@ function handleSuggestion(text) {
     // before changing, save the old content
     oldContent = wp.data.select('core/block-editor').getSelectedBlock().attributes.content
 
+    currentBlockId = wp.data.select('core/block-editor').getSelectedBlock().clientId;
     insertTextIntoCurrentBlock("<span style=\"color:grey\"><i>" + suggestionText + "</i></span>")
-
     
+    setTimeout(function() {
+        moveCursorTo(oldContent.length);
+      }, 2000);
     // wait for a tab
     document.addEventListener('keydown', tabHandler);
     
