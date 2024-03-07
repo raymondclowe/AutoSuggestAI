@@ -31,6 +31,43 @@ let AIDelay = 5;
 // let AIBackEndURL;
 // let AIPromptTemplate;
 
+
+let thinkingDiv;
+function thinkingIndicator(action) {
+    if (action === 'show') {
+        // display an animated gif of gears turning
+        // check if thinkingDiv exists, if not create it and move it to the bottom or the
+        // screen
+        // put a suitable emoji or windig or symbol in it, then attach css annimation to
+        // make it rotate
+        thinkingDiv = document.getElementById('thinkingDiv');
+        if (!thinkingDiv) {
+            thinkingDiv = document.createElement('div');
+            thinkingDiv.id = 'thinkingDiv';
+            thinkingDiv.style.position = 'fixed';
+            thinkingDiv.style.bottom = '0';
+            // make it bottom centered
+            thinkingDiv.style.left = '50%';
+            
+            thinkingDiv.style.zIndex = '10000';
+            thinkingDiv.style.width = '100px';
+            thinkingDiv.style.height = '100px';
+            // use symbols for the content, don't use any image file
+            thinkingDiv.innerHTML = '🧑‍💻';            
+            document.body.appendChild(thinkingDiv);
+            // now attach annimation using css
+
+        }
+        
+    } else if (action === 'hide') {
+        // remove the animated gif
+        // hide the element
+        thinkingDiv.style.display = 'none';
+    }
+}
+
+
+
 setTimeout(() => {
     fetch('/index.php?rest_route=/autosuggestai/v1/apikey', {
         headers: new Headers({
@@ -120,6 +157,7 @@ function getSuggestionPromise(title, context, existingText) {
         })
             .then(res => res.json())
             .then(data => {
+                thinkingIndicator('hide');
                 responseText = data.choices[0].message.content.trim();
                 // sometimes the response text starts with the existingText, if that is
                 // true then we should trim it off before returning it.
@@ -266,6 +304,7 @@ function idleNow() {
     console.log("Inactive")
     if (suggestionState = 'inactive-before-suggestion') { // the user has stopped typing, and we haven't got a suggestion yet
         // get the text of the current wp editor block.
+
         const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
         // if the currentBlock is undefined as exist, the cursor must be on the title or 
         // somewhere else on the screen.
@@ -308,6 +347,7 @@ function idleNow() {
         const title = wp.data.select("core/editor").getEditedPostAttribute('title');
 
         const suggestionTextPromise = getSuggestionPromise(title, precedingBlockText, currentBlockText)
+        thinkingIndicator('show');
         suggestionState = 'inactive-asked-for-suggestion'
         suggestionTextPromise.then((text) => {
             console.log("Got some suggestion: " + text)
