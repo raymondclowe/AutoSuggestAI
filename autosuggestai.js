@@ -31,7 +31,7 @@ let myApiKey;
 let AIDelay = 5;
 let nearestPTag;
 let originalNearestPTag; // this is a clone of the tag with the suggestion, prior to the suggestion being added.
-
+let oldContent;
 let thinkingDiv;
 function thinkingIndicator(action) {
     if (action === 'show') {
@@ -134,7 +134,7 @@ function getSuggestionPromise(title, context, existingText) {
 
         messageContent = promptTemplate.replace('{prompt}', instruction)
 
-        console.log('messageContent is' + messageContent);
+        // console.log('messageContent is' + messageContent);
         const data = {
             model: 'mistral-tiny',
             messages: [
@@ -151,6 +151,7 @@ function getSuggestionPromise(title, context, existingText) {
             // unsafe_prompt: false,
             random_seed: null
         };
+
         // Make the API request
         return fetch(mistralApiUrl, {
             method: 'POST',
@@ -260,8 +261,7 @@ const tabHandler = (event) => {
             // replace the current block with the suggestion
             // and set the state to active
             suggestionState = 'active';
-            const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
-
+            
             insertTextIntoCurrentBlock(suggestionText);
 
         }
@@ -322,6 +322,8 @@ function handleSuggestion(text) {
     }
     suggestionText = text
     suggestionState = 'inactive-got-suggestion'
+
+    
     // should show the suggestion now and then 
     // add a keyboard handler to look basically any key
     // and it will do tab or non tab
@@ -331,34 +333,25 @@ function handleSuggestion(text) {
     nearestPTag = currentElement.closest('p');
 
     // only proceed if cursor is not doing a selection
-    if ( window.getSelection().isCollapsed !== true) {
+    if (window.getSelection().isCollapsed !== true) {
         return;
     }
 
-  // make a duplicate copy of the nearestPTag so we can restore it later if suggestion is dismissed
-  originalNearestPTag = nearestPTag.cloneNode(true);
+    // // make a duplicate copy of the nearestPTag so we can restore it later if suggestion is dismissed
+    // originalNearestPTag = nearestPTag.cloneNode(true);
 
-  // add the suggestion text to the nearestPTag
-  nearestPTag.innerHTML += "<span style='color:grey'><i>" + suggestionText + "</i></span>";
+    // // add the suggestion text to the nearestPTag
+    // nearestPTag.innerHTML += "<span style='color:grey'><i>" + suggestionText + "</i></span>";
 
-  // put the cursor back to the correct position based on the current block text length, without the suggestion.
-  setTimeout(() => {
-      (async () => {
-        console.log("Trying to move cursor")
-          await moveCursorToEnd();
-          const selection = window.getSelection();
-          const range = document.createRange();
-          range.setStart(nearestPTag, nearestPTag.childNodes.length);
-          range.collapse(true);
-          selection.removeAllRanges();
-          selection.addRange(range);
-          console.log("Finished Trying to move cursor")
-      })();
-  }, 1000);
+    // before changing, save the old content
+    oldContent = wp.data.select('core/block-editor').getSelectedBlock().attributes.content
 
+    insertTextIntoCurrentBlock("<span style=\"color:grey\"><i>" + suggestionText + "</i></span>")
 
+    
     // wait for a tab
     document.addEventListener('keydown', tabHandler);
+    
 }  
 
 function idleNow() {
@@ -431,9 +424,21 @@ function idleNow() {
 function resetIdle() {
     clearTimeout(idleTimeout);
     idle = false;
+    console.log("Start reset idle")
     // if a suggestion has been made, then reset the text of the block to the original text from the clone
     if (suggestionState === 'inactive-got-suggestion') {
-        nearestPTag.innerHTML = originalNearestPTag.innerHTML;
+        // nearestPTag.innerHTML = originalNearestPTag.innerHTML;
+        console.log('should give up on suggestion')
+        // take the current block and set it to the previous text, then move the cursor to the end
+        
+        wp.data.dispatch('core/block-editor').updateBlockAttributes(wp.data.select('core/block-editor').getSelectedBlock().clientId, {
+            content: oldContent,
+        });
+
+        cursorPosition = oldContent.length + 1; // Adjust cursor position to exclude the space
+        wp.data.dispatch('core/block-editor').selectionChange( wp.data.select('core/block-editor').getSelectedBlock().clientId, "content", cursorPosition, cursorPosition);
+
+    
     }
 
 
