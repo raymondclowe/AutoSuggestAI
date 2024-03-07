@@ -167,9 +167,9 @@ function insertTextIntoCurrentBlock(text) {
     const firstPart = parts[0];
     
     // Combine current content with the new text
-    const newContent = `${currentContent} ${firstPart}`;
+    const newContent = `${currentContent}${firstPart}`;
 
-    // Update the block's contentnt with the first part
+    // Update the block's content with the first part
     wp.data.dispatch('core/block-editor').updateBlockAttributes(selectedBlock.clientId, {
         content: newContent,
     });
@@ -178,32 +178,33 @@ function insertTextIntoCurrentBlock(text) {
     // Place the selection at the end of the inserted text
     const blockClientId = selectedBlock.clientId;
     if (selectedBlock.name === 'core/paragraph') {
-        cursorPosition = newContent.length
-        wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", cursorPosition, cursorPosition)
+        cursorPosition = newContent.length + 1; // Adjust cursor position to exclude the space
+        wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", cursorPosition, cursorPosition);
 
     } else {
         console.warn('Cursor adjustment is not supported for this block type.');
     }
-
     
+    // if and only if there are more parts of text
+    if (parts.length > 1) {
 
-    // Get the position of the current block
-    const currentBlockIndex = wp.data.select('core/block-editor').getBlockIndex(selectedBlock.clientId);
+        // Get the position of the current block
+        const currentBlockIndex = wp.data.select('core/block-editor').getBlockIndex(selectedBlock.clientId);
 
-    // Insert remaining parts as new blocks after the current block
-    let prevBlockId = selectedBlock.clientId;
-    for (let i = 1; i < parts.length; i++) {
-        const newBlock = wp.blocks.createBlock('core/paragraph', {
-            content: parts[i]
-        });
-        wp.data.dispatch('core/block-editor').insertBlock(newBlock, currentBlockIndex + i);
-        prevBlockId = newBlock.clientId;
+        // Insert remaining parts as new blocks after the current block
+        let prevBlockId = selectedBlock.clientId;
+        for (let i = 1; i < parts.length; i++) {
+            const newBlock = wp.blocks.createBlock('core/paragraph', {
+                content: parts[i]
+            });
+            wp.data.dispatch('core/block-editor').insertBlock(newBlock, currentBlockIndex + i);
+            prevBlockId = newBlock.clientId;
+        }
+
+        // Move cursor to end of last inserted block
+        const lastBlockId = prevBlockId;
+        wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", parts[parts.length - 1].length, parts[parts.length - 1].length);
     }
-
-    // Move cursor to end of last inserted block
-    const lastBlockId = prevBlockId;
-    wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", parts[parts.length - 1].length, parts[parts.length - 1].length);
-
 }
 
 const tabHandler = (event) => {
