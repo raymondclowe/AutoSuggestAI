@@ -161,10 +161,14 @@ function insertTextIntoCurrentBlock(text) {
     const currentAttributes = selectedBlock.attributes;
     const currentContent = currentAttributes.content;
 
+    // Split text into parts based on line breaks
+    const parts = text.split(/\r?\n/);
+    const firstPart = parts[0];
+    
     // Combine current content with the new text
-    const newContent = `${currentContent} ${text}`;
+    const newContent = `${currentContent} ${firstPart}`;
 
-    // Update the block's content
+    // Update the block's contentnt with the first part
     wp.data.dispatch('core/block-editor').updateBlockAttributes(selectedBlock.clientId, {
         content: newContent,
     });
@@ -179,6 +183,25 @@ function insertTextIntoCurrentBlock(text) {
     } else {
         console.warn('Cursor adjustment is not supported for this block type.');
     }
+
+    
+
+    // Get the position of the current block
+    const currentBlockIndex = wp.data.select('core/block-editor').getBlockIndex(selectedBlock.clientId);
+
+    // Insert remaining parts as new blocks after the current block
+    let prevBlockId = selectedBlock.clientId;
+    for (let i = 1; i < parts.length; i++) {
+        const newBlock = wp.blocks.createBlock('core/paragraph', {
+            content: parts[i]
+        });
+        wp.data.dispatch('core/block-editor').insertBlock(newBlock, currentBlockIndex + i);
+        prevBlockId = newBlock.clientId;
+    }
+
+    // Move cursor to end of last inserted block
+    const lastBlockId = prevBlockId;
+    wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", parts[parts.length - 1].length, parts[parts.length - 1].length);
 
 }
 
