@@ -1,4 +1,4 @@
-// Version: 1.4
+// Version: 1.5
 
 // There are various possible states and need to keep track of them.
 // State 1 is active, in which case nothing is to be suggested and
@@ -119,7 +119,13 @@ function getSuggestionPromise(title, context, existingText) {
         })
             .then(res => res.json())
             .then(data => {
-                resolve(data.choices[0].message.content.trim());
+                responseText = data.choices[0].message.content.trim();
+                // sometimes the response text starts with the existingText, if that is
+                // true then we should trim it off before returning it.
+                if (responseText.startsWith(existingText)) {
+                    responseText = responseText.substr(existingText.length);
+                }
+                resolve(responseText);
             });
     });
 }
