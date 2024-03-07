@@ -341,5 +341,8 @@ function resetIdle() {
 window.addEventListener('mousemove', resetIdle);
 window.addEventListener('scroll', resetIdle);
 window.addEventListener('keydown', resetIdle);
+// can we check for lost focus? we should resetIdle in that case as well.
+window.addEventListener('blur', resetIdle);
+
 
 resetIdle();
