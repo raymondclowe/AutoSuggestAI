@@ -28,9 +28,8 @@ console.log(Version)
 // get the API key after a 10 second delay
 let myApiKey;
 let AIDelay = 5;
-// let AIBackEndURL;
-// let AIPromptTemplate;
-
+let nearestPTag;
+let originalNearestPTag; // this is a clone of the tag with the suggestion, prior to the suggestion being added.
 
 let thinkingDiv;
 function thinkingIndicator(action) {
@@ -372,25 +371,16 @@ function idleNow() {
             // Find the nearest parent paragraph tag
             nearestPTag = currentElement.closest('p');
 
-            // Get the current selection range
-            const selection = window.getSelection();
-
-            // if the selection is just a single cursor, and not a range, then
-            // exit as we don't want to mess with the text if the user is highlighting
-            if (selection.isCollapsed !== true) {
+            // only proceed if cursor is not doing a selection
+            if ( window.getSelection().isCollapsed !== true) {
                 return;
             }
 
-            // Get the node and offset where the cursor is located
-            let anchorNode = selection.anchorNode;
-            let anchorOffset = selection.anchorOffset;
+            
+            // make a duplicate copy of the nearestPTag so we can restore it later if suggestion is dismissed
+            originalNearestPTag = nearestPTag.cloneNode(true);
 
-            // No selection, so insert at cursor position
-            let textNode = document.createTextNode(" " + suggestionText + " ");
-            let italicNode = document.createElement('i');
-            italicNode.style.color = 'grey';
-            italicNode.appendChild(textNode);
-            //             nearestPTag.insertBefore(italicNode, anchorNode);
+
             nearestPTag.innerHTML = nearestPTag.innerHTML + "<span style='color:grey'><i>" + suggestionText + "</i></span>"
             // wait for a tab
             document.addEventListener('keydown', tabHandler);
@@ -404,6 +394,12 @@ function idleNow() {
 function resetIdle() {
     clearTimeout(idleTimeout);
     idle = false;
+    // if a suggestion has been made, then reset the text of the block to the original text from the clone
+    if (suggestionState === 'inactive-got-suggestion') {
+        nearestPTag.innerHTML = originalNearestPTag.innerHTML;
+    }
+
+
     suggestionState = "active"
 
     idleTimeout = setTimeout(idleNow, AIDelay * 1000);
