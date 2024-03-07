@@ -312,6 +312,55 @@ async function moveCursorToEnd() {
 
   }
 
+
+function handleSuggestion(text) {
+    console.log("Got some suggestion: " + text)
+    // check if the state is still inactive asked for suggestion, as the user may have typed and so it will be active now. if it is the wrong status then we need to exit/return and give up on the suggestion.
+    if (suggestionState !== 'inactive-asked-for-suggestion') {
+        console.log("Suggestion state is wrong, so we are giving up on the suggestion")
+        return;
+    }
+    suggestionText = text
+    suggestionState = 'inactive-got-suggestion'
+    // should show the suggestion now and then 
+    // add a keyboard handler to look basically any key
+    // and it will do tab or non tab
+
+    currentElement = getcurrentElementFromCanvas();
+    // Find the nearest parent paragraph tag
+    nearestPTag = currentElement.closest('p');
+
+    // only proceed if cursor is not doing a selection
+    if ( window.getSelection().isCollapsed !== true) {
+        return;
+    }
+
+  // make a duplicate copy of the nearestPTag so we can restore it later if suggestion is dismissed
+  originalNearestPTag = nearestPTag.cloneNode(true);
+
+  // add the suggestion text to the nearestPTag
+  nearestPTag.innerHTML += "<span style='color:grey'><i>" + suggestionText + "</i></span>";
+
+  // put the cursor back to the correct position based on the current block text length, without the suggestion.
+  setTimeout(() => {
+      (async () => {
+        console.log("Trying to move cursor")
+          await moveCursorToEnd();
+          const selection = window.getSelection();
+          const range = document.createRange();
+          range.setStart(nearestPTag, nearestPTag.childNodes.length);
+          range.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(range);
+          console.log("Finished Trying to move cursor")
+      })();
+  }, 1000);
+
+
+    // wait for a tab
+    document.addEventListener('keydown', tabHandler);
+}  
+
 function idleNow() {
     console.log("idle")
     idle = true;
@@ -321,12 +370,12 @@ function idleNow() {
     else
     { console.log("idle but not active, so must be inside the suggestion process")}
     console.log("suggestionState = " + suggestionState)
-    
+
     if (suggestionState = 'inactive-before-suggestion') { // the user has stopped typing, and we haven't got a suggestion yet
         // get the text of the current wp editor block.
 
         const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
-        // if the currentBlock is undefined as exist, the cursor must be on the title or 
+        // if the currentBlock is nul; or doesn't exist, the cursor must be on the title or 
         // somewhere else on the screen.
         if (currentBlock === undefined || currentBlock === null) {
             suggestionState = 'active'
@@ -339,6 +388,7 @@ function idleNow() {
             console.error('Selected block is not a paragraph block.');
             return;
         }
+
         // check if the last character of the current block is a whitespace, if it is not then
         // exit as we only suggest when the user is pausing after a word. 
         if (currentBlock.attributes.content.length > 0 && currentBlock.attributes.content[currentBlock.attributes.content.length - 1] !== " ") {
@@ -346,8 +396,10 @@ function idleNow() {
             console.log("Last character is not a whitespace, so we are not suggesting")
             return;
         }
+
         let currentBlockText = currentBlock.attributes.content
         let precedingBlockText = ''
+        
         const currentBlockIndexNumber = wp.data.select('core/block-editor').getBlocks().indexOf(currentBlock)
         console.log('currentBlockIndexNumber:' + currentBlockIndexNumber)
 
@@ -369,53 +421,7 @@ function idleNow() {
         const suggestionTextPromise = getSuggestionPromise(title, precedingBlockText, currentBlockText)
         thinkingIndicator('show');
         suggestionState = 'inactive-asked-for-suggestion'
-        suggestionTextPromise.then((text) => {
-            console.log("Got some suggestion: " + text)
-            // check if the state is still inactive asked for suggestion, as the user may have typed and so it will be active now. if it is the wrong status then we need to exit/return and give up on the suggestion.
-            if (suggestionState !== 'inactive-asked-for-suggestion') {
-                console.log("Suggestion state is wrong, so we are giving up on the suggestion")
-                return;
-            }
-            suggestionText = text
-            suggestionState = 'inactive-got-suggestion'
-            // should show the suggestion now and then 
-            // add a keyboard handler to look basically any key
-            // and it will do tab or non tab
-
-            currentElement = getcurrentElementFromCanvas();
-            // Find the nearest parent paragraph tag
-            nearestPTag = currentElement.closest('p');
-
-            // only proceed if cursor is not doing a selection
-            if ( window.getSelection().isCollapsed !== true) {
-                return;
-            }
-
-          // make a duplicate copy of the nearestPTag so we can restore it later if suggestion is dismissed
-          originalNearestPTag = nearestPTag.cloneNode(true);
-
-          // add the suggestion text to the nearestPTag
-          nearestPTag.innerHTML += "<span style='color:grey'><i>" + suggestionText + "</i></span>";
-
-          // put the cursor back to the correct position based on the current block text length, without the suggestion.
-          setTimeout(() => {
-              (async () => {
-                console.log("Trying to move cursor")
-                  await moveCursorToEnd();
-                  const selection = window.getSelection();
-                  const range = document.createRange();
-                  range.setStart(nearestPTag, nearestPTag.childNodes.length);
-                  range.collapse(true);
-                  selection.removeAllRanges();
-                  selection.addRange(range);
-                  console.log("Finished Trying to move cursor")
-              })();
-          }, 1000);
-
-
-            // wait for a tab
-            document.addEventListener('keydown', tabHandler);
-        })
+        suggestionTextPromise.then(handleSuggestion)
     }
 }
 
