@@ -1,4 +1,5 @@
-const Version = 1.6
+const Version = 1.7;
+
 console.log(Version)
 
 // There are various possible states and need to keep track of them.
@@ -312,8 +313,15 @@ async function moveCursorToEnd() {
   }
 
 function idleNow() {
+    console.log("idle")
     idle = true;
-    console.log("Inactive")
+    if (suggestionState === 'active') {
+        suggestionState = 'inactive-before-suggestion' 
+    }
+    else
+    { console.log("idle but not active, so must be inside the suggestion process")}
+    console.log("suggestionState = " + suggestionState)
+    
     if (suggestionState = 'inactive-before-suggestion') { // the user has stopped typing, and we haven't got a suggestion yet
         // get the text of the current wp editor block.
 
