@@ -1,4 +1,5 @@
-// Version: 1.5
+const Version = 1.6
+console.log(Version)
 
 // There are various possible states and need to keep track of them.
 // State 1 is active, in which case nothing is to be suggested and
