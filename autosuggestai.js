@@ -1,4 +1,4 @@
-const Version = 1.6
+const Version = 1.8
 console.log(Version)
 
 // There are various possible states and need to keep track of them.
@@ -30,6 +30,7 @@ let myApiKey;
 let AIDelay = 5;
 let nearestPTag;
 let originalNearestPTag; // this is a clone of the tag with the suggestion, prior to the suggestion being added.
+let suggestionText;
 
 let thinkingDiv;
 function thinkingIndicator(action) {
@@ -47,17 +48,17 @@ function thinkingIndicator(action) {
             thinkingDiv.style.bottom = '0';
             // make it bottom centered
             thinkingDiv.style.left = '50%';
-            
+
             thinkingDiv.style.zIndex = '10000';
             thinkingDiv.style.width = '100px';
             thinkingDiv.style.height = '100px';
             // use symbols for the content, don't use any image file
-            thinkingDiv.innerHTML = '🧑‍💻';            
+            thinkingDiv.innerHTML = '🧑‍💻';
             document.body.appendChild(thinkingDiv);
             // now attach annimation using css
 
         }
-        
+
     } else if (action === 'hide') {
         // remove the animated gif
         // hide the element
@@ -179,12 +180,6 @@ function getSuggestionPromise(title, context, existingText) {
 let idle = false;
 let idleTimeout;
 let suggestionState = 'active';
-let suggestionText;
-
-
-
-
-
 
 function insertTextIntoCurrentBlock(text) {
     // Get the selected block
@@ -208,7 +203,7 @@ function insertTextIntoCurrentBlock(text) {
     // Split text into parts based on line breaks
     const parts = text.split(/\r?\n/);
     const firstPart = parts[0];
-    
+
     // Combine current content with the new text
     const newContent = `${currentContent}${firstPart}`;
 
@@ -223,11 +218,11 @@ function insertTextIntoCurrentBlock(text) {
     if (selectedBlock.name === 'core/paragraph') {
         cursorPosition = newContent.length + 1; // Adjust cursor position to exclude the space
         wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", cursorPosition, cursorPosition);
-        
+
     } else {
         console.warn('Cursor adjustment is not supported for this block type.');
     }
-    
+
     // if and only if there are more parts of text
     if (parts.length > 1) {
 
@@ -251,6 +246,7 @@ function insertTextIntoCurrentBlock(text) {
 }
 
 const tabHandler = (event) => {
+    console.log("start tab handler")
     if (suggestionState = 'inactive-got-suggestion') {
         if (event.key === 'Tab') {
             // do not do the default tab behaviour
@@ -306,10 +302,53 @@ function getcurrentElementFromCanvas() {
 
 async function moveCursorToEnd() {
     // Wait for the selection change to complete
-    await await wp.data.dispatch('core/block-editor').selectionChange(wp.data.select('core/block-editor').getSelectedBlock().clientId, "content", wp.data.select('core/block-editor').getSelectedBlock().attributes.content.length,  wp.data.select('core/block-editor').getSelectedBlock().attributes.content.length);
-  
+    await await wp.data.dispatch('core/block-editor').selectionChange(wp.data.select('core/block-editor').getSelectedBlock().clientId, "content", wp.data.select('core/block-editor').getSelectedBlock().attributes.content.length, wp.data.select('core/block-editor').getSelectedBlock().attributes.content.length);
 
-  }
+
+}
+
+function moveCursorTo(cursorPosition) {
+    console.log("Move cursor to " + cursorPosition)
+    wp.data.dispatch('core/block-editor').selectionChange(wp.data.select('core/block-editor').getSelectedBlock().clientId, "content", cursorPosition, cursorPosition);
+}
+
+function handleSuggestion(suggestionText) {
+    console.log("Got some suggestion: " + suggestionText)
+    // check if the state is still inactive asked for suggestion, as the user may have typed and so it will be active now. if it is the wrong status then we need to exit/return and give up on the suggestion.
+    if (suggestionState !== 'inactive-asked-for-suggestion') {
+        console.log("Suggestion state is wrong, so we are giving up on the suggestion")
+        return;
+    }
+
+    suggestionState = 'inactive-got-suggestion'
+    // should show the suggestion now and then 
+    // add a keyboard handler to look basically any key
+    // and it will do tab or non tab
+
+    currentElement = getcurrentElementFromCanvas();
+    // Find the nearest parent paragraph tag
+    nearestPTag = currentElement.closest('p');
+
+    // only proceed if cursor is not doing a selection
+    if (window.getSelection().isCollapsed !== true) {
+        return;
+    }
+
+    // make a duplicate copy of the nearestPTag so we can restore it later if suggestion is dismissed
+    originalNearestPTag = nearestPTag.cloneNode(true);
+
+    // add the suggestion text to the nearestPTag
+    nearestPTag.innerHTML += "<span style='color:grey'><i>" + suggestionText + "</i></span>";
+
+    setTimeout(function () {
+        moveCursorTo(3);
+    }, 2000);
+
+
+    // wait for a tab
+    document.addEventListener('keydown', tabHandler);
+}
+
 
 function idleNow() {
     idle = true;
@@ -346,7 +385,7 @@ function idleNow() {
         // if the currentBlockText is blank, then go get the preceding block text instead, even if it is not a paragraph
         if (currentBlockText.length === 0) {
             if (currentBlockIndexNumber >= 1) {
-            currentBlockText = wp.data.select('core/block-editor').getBlocks()[currentBlockIndexNumber - 1].attributes.content // actually the previous block
+                currentBlockText = wp.data.select('core/block-editor').getBlocks()[currentBlockIndexNumber - 1].attributes.content // actually the previous block
             }
             if (currentBlockIndexNumber >= 2) {
                 precedingBlockText = wp.data.select('core/block-editor').getBlocks()[currentBlockIndexNumber - 2].attributes.content
@@ -358,56 +397,14 @@ function idleNow() {
         }
         const title = wp.data.select("core/editor").getEditedPostAttribute('title');
 
+        // before changing, save the old content
+        oldContent = wp.data.select('core/block-editor').getSelectedBlock().attributes.content
+
+
         const suggestionTextPromise = getSuggestionPromise(title, precedingBlockText, currentBlockText)
         thinkingIndicator('show');
         suggestionState = 'inactive-asked-for-suggestion'
-        suggestionTextPromise.then((text) => {
-            console.log("Got some suggestion: " + text)
-            // check if the state is still inactive asked for suggestion, as the user may have typed and so it will be active now. if it is the wrong status then we need to exit/return and give up on the suggestion.
-            if (suggestionState !== 'inactive-asked-for-suggestion') {
-                console.log("Suggestion state is wrong, so we are giving up on the suggestion")
-                return;
-            }
-            suggestionText = text
-            suggestionState = 'inactive-got-suggestion'
-            // should show the suggestion now and then 
-            // add a keyboard handler to look basically any key
-            // and it will do tab or non tab
-
-            currentElement = getcurrentElementFromCanvas();
-            // Find the nearest parent paragraph tag
-            nearestPTag = currentElement.closest('p');
-
-            // only proceed if cursor is not doing a selection
-            if ( window.getSelection().isCollapsed !== true) {
-                return;
-            }
-
-          // make a duplicate copy of the nearestPTag so we can restore it later if suggestion is dismissed
-          originalNearestPTag = nearestPTag.cloneNode(true);
-
-          // add the suggestion text to the nearestPTag
-          nearestPTag.innerHTML += "<span style='color:grey'><i>" + suggestionText + "</i></span>";
-
-          // put the cursor back to the correct position based on the current block text length, without the suggestion.
-          setTimeout(() => {
-              (async () => {
-                console.log("Trying to move cursor")
-                  await moveCursorToEnd();
-                  const selection = window.getSelection();
-                  const range = document.createRange();
-                  range.setStart(nearestPTag, nearestPTag.childNodes.length);
-                  range.collapse(true);
-                  selection.removeAllRanges();
-                  selection.addRange(range);
-                  console.log("Finished Trying to move cursor")
-              })();
-          }, 1000);
-
-
-            // wait for a tab
-            document.addEventListener('keydown', tabHandler);
-        })
+        suggestionTextPromise.then(handleSuggestion)
     }
 }
 
