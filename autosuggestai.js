@@ -1,4 +1,6 @@
-// Version: 1.5
+const Version = 1.9;
+
+console.log(Version)
 
 // There are various possible states and need to keep track of them.
 // State 1 is active, in which case nothing is to be suggested and
@@ -27,8 +29,44 @@
 // get the API key after a 10 second delay
 let myApiKey;
 let AIDelay = 5;
-// let AIBackEndURL;
-// let AIPromptTemplate;
+let nearestPTag;
+let originalNearestPTag; // this is a clone of the tag with the suggestion, prior to the suggestion being added.
+let oldContent;
+let thinkingDiv;
+function thinkingIndicator(action) {
+    if (action === 'show') {
+        // display an animated gif of gears turning
+        // check if thinkingDiv exists, if not create it and move it to the bottom or the
+        // screen
+        // put a suitable emoji or windig or symbol in it, then attach css annimation to
+        // make it rotate
+        thinkingDiv = document.getElementById('thinkingDiv');
+        if (!thinkingDiv) {
+            thinkingDiv = document.createElement('div');
+            thinkingDiv.id = 'thinkingDiv';
+            thinkingDiv.style.position = 'fixed';
+            thinkingDiv.style.bottom = '0';
+            // make it bottom centered
+            thinkingDiv.style.left = '50%';
+            
+            thinkingDiv.style.zIndex = '10000';
+            thinkingDiv.style.width = '100px';
+            thinkingDiv.style.height = '100px';
+            // use symbols for the content, don't use any image file
+            thinkingDiv.innerHTML = '🧑‍💻';            
+            document.body.appendChild(thinkingDiv);
+            // now attach annimation using css
+
+        }
+        
+    } else if (action === 'hide') {
+        // remove the animated gif
+        // hide the element
+        thinkingDiv.style.display = 'none';
+    }
+}
+
+
 
 setTimeout(() => {
     fetch('/index.php?rest_route=/autosuggestai/v1/apikey', {
@@ -58,26 +96,32 @@ const promptTemplate = `[INST] {prompt} [/INST]`; // <s> only needed for multi t
 const thePrompt = `
 You are an automated writing assistant who will suggest the next piece of text to write after an example given to you. The suggested text you provide will always be brief, meaningful, sensible, in keeping with the style of the example. You will be given the title of the piece of writing, one or more preceding paragraphs, and the incomplete paragraph that needs extending. The place to add text will be marked with three dots like this ...
 
-Examples: if you are given the text "The cat sat on the ... " then you will reply "mat."
 
-If you are given the text "The rain in Spain falls ... " then you will reply with "mainly on the plain".
+Examples:
 
+If you are given the text "The cat sat on the ... " then you will reply "mat."
+If you are given the text "The rain in Spain falls ... " then you will reply with "mainly on the plain. In Hertford, Hereford, and Hampshire, hurricanes hardly ever happen.".
 If you are given the text "The sun rises in the east ... " then you will reply with "and sets in the west".
+If you are given the text "The dog ... " then you will reply with "barks, and the cat meows".
+If you are given the text "Four score and seven years ago ... " then you will reply with "our fathers brought forth, upon this continent, a new nation".
 
-If you are given the text "The dog ... " then you will reply with "barks".
-
-If you are given the text "Four score and seven years ago ... " then you will reply with "our forefathers brought for a new nation".
 
 You will return only the suggested extention of the text, without including the original incomplete paragraph.
 
+
 Here is the title of the piece of writing:
+
 {title}
 
-Here is the preceding paragraphs for context:
+
+Here are the preceding paragraphs for context:
+
 {context}
 
+
 Here is the text to be extended:
->{text}`;
+
+{text}`;
 
 const mistralApiUrl = 'https://api.mistral.ai/v1/chat/completions';
 
@@ -90,7 +134,7 @@ function getSuggestionPromise(title, context, existingText) {
 
         messageContent = promptTemplate.replace('{prompt}', instruction)
 
-        console.log('messageContent is' + messageContent);
+        // console.log('messageContent is' + messageContent);
         const data = {
             model: 'mistral-tiny',
             messages: [
@@ -107,6 +151,7 @@ function getSuggestionPromise(title, context, existingText) {
             // unsafe_prompt: false,
             random_seed: null
         };
+
         // Make the API request
         return fetch(mistralApiUrl, {
             method: 'POST',
@@ -119,6 +164,7 @@ function getSuggestionPromise(title, context, existingText) {
         })
             .then(res => res.json())
             .then(data => {
+                thinkingIndicator('hide');
                 responseText = data.choices[0].message.content.trim();
                 // sometimes the response text starts with the existingText, if that is
                 // true then we should trim it off before returning it.
@@ -138,6 +184,11 @@ let suggestionState = 'active';
 let suggestionText;
 
 
+function moveCursorTo(cursorPosition) {
+    console.log("Move cursor to " + cursorPosition)
+    wp.data.dispatch('core/block-editor').selectionChange(wp.data.select('core/block-editor').getSelectedBlock().clientId, "content", cursorPosition, cursorPosition);
+}
+    
 
 
 
@@ -166,9 +217,9 @@ function insertTextIntoCurrentBlock(text) {
     const firstPart = parts[0];
     
     // Combine current content with the new text
-    const newContent = `${currentContent} ${firstPart}`;
+    const newContent = `${oldContent}${firstPart}`;
 
-    // Update the block's contentnt with the first part
+    // Update the block's content with the first part
     wp.data.dispatch('core/block-editor').updateBlockAttributes(selectedBlock.clientId, {
         content: newContent,
     });
@@ -177,32 +228,33 @@ function insertTextIntoCurrentBlock(text) {
     // Place the selection at the end of the inserted text
     const blockClientId = selectedBlock.clientId;
     if (selectedBlock.name === 'core/paragraph') {
-        cursorPosition = newContent.length
-        wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", cursorPosition, cursorPosition)
-
+        cursorPosition = newContent.length + 1; // Adjust cursor position to exclude the space
+        wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", cursorPosition, cursorPosition);
+        
     } else {
         console.warn('Cursor adjustment is not supported for this block type.');
     }
-
     
+    // if and only if there are more parts of text
+    if (parts.length > 1) {
 
-    // Get the position of the current block
-    const currentBlockIndex = wp.data.select('core/block-editor').getBlockIndex(selectedBlock.clientId);
+        // Get the position of the current block
+        const currentBlockIndex = wp.data.select('core/block-editor').getBlockIndex(selectedBlock.clientId);
 
-    // Insert remaining parts as new blocks after the current block
-    let prevBlockId = selectedBlock.clientId;
-    for (let i = 1; i < parts.length; i++) {
-        const newBlock = wp.blocks.createBlock('core/paragraph', {
-            content: parts[i]
-        });
-        wp.data.dispatch('core/block-editor').insertBlock(newBlock, currentBlockIndex + i);
-        prevBlockId = newBlock.clientId;
+        // Insert remaining parts as new blocks after the current block
+        let prevBlockId = selectedBlock.clientId;
+        for (let i = 1; i < parts.length; i++) {
+            const newBlock = wp.blocks.createBlock('core/paragraph', {
+                content: parts[i]
+            });
+            wp.data.dispatch('core/block-editor').insertBlock(newBlock, currentBlockIndex + i);
+            prevBlockId = newBlock.clientId;
+        }
+
+        // Move cursor to end of last inserted block
+        const lastBlockId = prevBlockId;
+        wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", parts[parts.length - 1].length, parts[parts.length - 1].length);
     }
-
-    // Move cursor to end of last inserted block
-    const lastBlockId = prevBlockId;
-    wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", parts[parts.length - 1].length, parts[parts.length - 1].length);
-
 }
 
 const tabHandler = (event) => {
@@ -214,8 +266,7 @@ const tabHandler = (event) => {
             // replace the current block with the suggestion
             // and set the state to active
             suggestionState = 'active';
-            const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
-
+            
             insertTextIntoCurrentBlock(suggestionText);
 
         }
@@ -259,13 +310,73 @@ function getcurrentElementFromCanvas() {
     return currentElement
 }
 
+async function moveCursorToEnd() {
+    // Wait for the selection change to complete
+    await await wp.data.dispatch('core/block-editor').selectionChange(wp.data.select('core/block-editor').getSelectedBlock().clientId, "content", wp.data.select('core/block-editor').getSelectedBlock().attributes.content.length,  wp.data.select('core/block-editor').getSelectedBlock().attributes.content.length);
+  
+
+  }
+
+
+function handleSuggestion(text) {
+    console.log("Got some suggestion: " + text)
+    // check if the state is still inactive asked for suggestion, as the user may have typed and so it will be active now. if it is the wrong status then we need to exit/return and give up on the suggestion.
+    if (suggestionState !== 'inactive-asked-for-suggestion') {
+        console.log("Suggestion state is wrong, so we are giving up on the suggestion")
+        return;
+    }
+    suggestionText = text
+    suggestionState = 'inactive-got-suggestion'
+
+    
+    // should show the suggestion now and then 
+    // add a keyboard handler to look basically any key
+    // and it will do tab or non tab
+
+    currentElement = getcurrentElementFromCanvas();
+    // Find the nearest parent paragraph tag
+    nearestPTag = currentElement.closest('p');
+
+    // only proceed if cursor is not doing a selection
+    if (window.getSelection().isCollapsed !== true) {
+        return;
+    }
+
+    // // make a duplicate copy of the nearestPTag so we can restore it later if suggestion is dismissed
+    // originalNearestPTag = nearestPTag.cloneNode(true);
+
+    // // add the suggestion text to the nearestPTag
+    // nearestPTag.innerHTML += "<span style='color:grey'><i>" + suggestionText + "</i></span>";
+
+    // before changing, save the old content
+    oldContent = wp.data.select('core/block-editor').getSelectedBlock().attributes.content
+
+    currentBlockId = wp.data.select('core/block-editor').getSelectedBlock().clientId;
+    insertTextIntoCurrentBlock("<i>" + suggestionText + "</i>")
+    
+    setTimeout(function() {
+        moveCursorTo(oldContent.length);
+      }, 2000);
+    // wait for a tab
+    document.addEventListener('keydown', tabHandler);
+    
+}  
+
 function idleNow() {
+    console.log("idle")
     idle = true;
-    console.log("Inactive")
+    if (suggestionState === 'active') {
+        suggestionState = 'inactive-before-suggestion' 
+    }
+    else
+    { console.log("idle but not active, so must be inside the suggestion process")}
+    console.log("suggestionState = " + suggestionState)
+
     if (suggestionState = 'inactive-before-suggestion') { // the user has stopped typing, and we haven't got a suggestion yet
         // get the text of the current wp editor block.
+
         const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
-        // if the currentBlock is undefined as exist, the cursor must be on the title or 
+        // if the currentBlock is nul; or doesn't exist, the cursor must be on the title or 
         // somewhere else on the screen.
         if (currentBlock === undefined || currentBlock === null) {
             suggestionState = 'active'
@@ -278,6 +389,7 @@ function idleNow() {
             console.error('Selected block is not a paragraph block.');
             return;
         }
+
         // check if the last character of the current block is a whitespace, if it is not then
         // exit as we only suggest when the user is pausing after a word. 
         if (currentBlock.attributes.content.length > 0 && currentBlock.attributes.content[currentBlock.attributes.content.length - 1] !== " ") {
@@ -285,8 +397,10 @@ function idleNow() {
             console.log("Last character is not a whitespace, so we are not suggesting")
             return;
         }
+
         let currentBlockText = currentBlock.attributes.content
         let precedingBlockText = ''
+        
         const currentBlockIndexNumber = wp.data.select('core/block-editor').getBlocks().indexOf(currentBlock)
         console.log('currentBlockIndexNumber:' + currentBlockIndexNumber)
 
@@ -306,47 +420,9 @@ function idleNow() {
         const title = wp.data.select("core/editor").getEditedPostAttribute('title');
 
         const suggestionTextPromise = getSuggestionPromise(title, precedingBlockText, currentBlockText)
+        thinkingIndicator('show');
         suggestionState = 'inactive-asked-for-suggestion'
-        suggestionTextPromise.then((text) => {
-            console.log("Got some suggestion: " + text)
-            // check if the state is still inactive asked for suggestion, as the user may have typed and so it will be active now. if it is the wrong status then we need to exit/return and give up on the suggestion.
-            if (suggestionState !== 'inactive-asked-for-suggestion') {
-                console.log("Suggestion state is wrong, so we are giving up on the suggestion")
-                return;
-            }
-            suggestionText = text
-            suggestionState = 'inactive-got-suggestion'
-            // should show the suggestion now and then 
-            // add a keyboard handler to look basically any key
-            // and it will do tab or non tab
-
-            currentElement = getcurrentElementFromCanvas();
-            // Find the nearest parent paragraph tag
-            nearestPTag = currentElement.closest('p');
-
-            // Get the current selection range
-            const selection = window.getSelection();
-
-            // if the selection is just a single cursor, and not a range, then
-            // exit as we don't want to mess with the text if the user is highlighting
-            if (selection.isCollapsed !== true) {
-                return;
-            }
-
-            // Get the node and offset where the cursor is located
-            let anchorNode = selection.anchorNode;
-            let anchorOffset = selection.anchorOffset;
-
-            // No selection, so insert at cursor position
-            let textNode = document.createTextNode(" " + suggestionText + " ");
-            let italicNode = document.createElement('i');
-            italicNode.style.color = 'grey';
-            italicNode.appendChild(textNode);
-            //             nearestPTag.insertBefore(italicNode, anchorNode);
-            nearestPTag.innerHTML = nearestPTag.innerHTML + "<span style='color:grey'><i>" + suggestionText + "</i></span>"
-            // wait for a tab
-            document.addEventListener('keydown', tabHandler);
-        })
+        suggestionTextPromise.then(handleSuggestion)
     }
 }
 
@@ -356,15 +432,35 @@ function idleNow() {
 function resetIdle() {
     clearTimeout(idleTimeout);
     idle = false;
+    console.log("Start reset idle")
+    // if a suggestion has been made, then reset the text of the block to the original text from the clone
+    if (suggestionState === 'inactive-got-suggestion') {
+        // nearestPTag.innerHTML = originalNearestPTag.innerHTML;
+        console.log('should give up on suggestion')
+        // take the current block and set it to the previous text, then move the cursor to the end
+        
+        wp.data.dispatch('core/block-editor').updateBlockAttributes(wp.data.select('core/block-editor').getSelectedBlock().clientId, {
+            content: oldContent,
+        });
+
+        cursorPosition = oldContent.length + 1; // Adjust cursor position to exclude the space
+        wp.data.dispatch('core/block-editor').selectionChange( wp.data.select('core/block-editor').getSelectedBlock().clientId, "content", cursorPosition, cursorPosition);
+
+    
+    }
+
+
     suggestionState = "active"
 
     idleTimeout = setTimeout(idleNow, AIDelay * 1000);
 }
 
-window.addEventListener('mousemove', resetIdle);
-window.addEventListener('scroll', resetIdle);
+
+
 window.addEventListener('keydown', resetIdle);
-// can we check for lost focus? we should resetIdle in that case as well.
+window.addEventListener('scroll', resetIdle);
+window.addEventListener('mousedown', resetIdle);
+window.addEventListener('click', resetIdle);
 window.addEventListener('blur', resetIdle);
 
 
