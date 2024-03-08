@@ -73,7 +73,9 @@ setTimeout(() => {
         headers: new Headers({
             'X-WP-Nonce': autosuggestai.api_nonce
         })
-    }).then(res => res.json()).then(data => {
+    }).then(res => res.json()
+    ).then(data => {
+        console.log(data);
         myApiKey = data.apikey;
         // get the integer value of the delay, it will be a string in the json data, so turn to a number
         AIDelay = parseInt(data.AIDelay);
@@ -363,6 +365,7 @@ function handleSuggestion(text) {
 }  
 
 function idleNow() {
+    
     console.log("idle")
     idle = true;
     if (suggestionState === 'active') {
@@ -374,6 +377,8 @@ function idleNow() {
 
     if (suggestionState = 'inactive-before-suggestion') { // the user has stopped typing, and we haven't got a suggestion yet
         // get the text of the current wp editor block.
+
+        thinkingIndicator('show');
 
         const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
         // if the currentBlock is nul; or doesn't exist, the cursor must be on the title or 
@@ -398,29 +403,74 @@ function idleNow() {
             return;
         }
 
-        let currentBlockText = currentBlock.attributes.content
-        let precedingBlockText = ''
-        
-        const currentBlockIndexNumber = wp.data.select('core/block-editor').getBlocks().indexOf(currentBlock)
-        console.log('currentBlockIndexNumber:' + currentBlockIndexNumber)
+                // get the text from the top of the post to the current block
+        let contextText = '';
+        const currentBlockClientId = wp.data.select('core/block-editor').getSelectedBlock().clientId;
+        let reachedCurrentBlock = false;
+        const blocks = wp.data.select('core/block-editor').getBlocks();
+        blocks.forEach(block => {
+            if (block.clientId === currentBlockClientId) {
+                reachedCurrentBlock = true;
+                return; // Using return here to exit the loop is better than break, as return will exit the current function entirely, while break will only exit the loop but continue executing the rest of the function
+            }
+            if (!reachedCurrentBlock) {
+                if (block.innerBlocks.length > 0) {
+                    block.innerBlocks.forEach(innerBlock => {
+                        if (innerBlock.name === 'core/list-item') {
+                            contextText += '* ' + innerBlock.attributes.content + '\n';
+                        } else {
+                            contextText += innerBlock.attributes.content + '\n';
+                        }
+                    });
+                } else if (block.name === 'core/heading') {
+                    contextText += '# ' + block.attributes.content + '\n\n';
+                } else if (block.name === 'core/image') {
+                    let imageText = '';
+                    if (block.attributes.alt) {
+                        imageText += block.attributes.alt;
+                    }
+                    if (block.attributes.caption) {
+                        imageText += ' ' + block.attributes.caption;
+                    }
+                    contextText += imageText + '\n';
+                } else if (block.name === 'maxbuttons/maxbuttons-block') {
+                    contextText += block.attributes.text + '\n';
+                } else if (block.name === 'core/quote') {
+                    contextText += '> ' + block.attributes.content + '\n';
+                } else if (block.name !== 'core/post-title') {
+                    contextText += block.attributes.content + '\n';
+                }
+            }
+        });
 
-        // if the currentBlockText is blank, then go get the preceding block text instead, even if it is not a paragraph
-        if (currentBlockText.length === 0) {
-            if (currentBlockIndexNumber >= 1) {
-            currentBlockText = wp.data.select('core/block-editor').getBlocks()[currentBlockIndexNumber - 1].attributes.content // actually the previous block
-            }
-            if (currentBlockIndexNumber >= 2) {
-                precedingBlockText = wp.data.select('core/block-editor').getBlocks()[currentBlockIndexNumber - 2].attributes.content
-            }
-        } else {
-            if (currentBlockIndexNumber >= 1) {
-                precedingBlockText = wp.data.select('core/block-editor').getBlocks()[currentBlockIndexNumber - 1].attributes.content
-            }
-        }
+
+
+
+        // console.log("contextText: " + contextText)
+
+        let currentBlockText = currentBlock.attributes.content
+        // let precedingBlockText = ''
+        
+        // const currentBlockIndexNumber = wp.data.select('core/block-editor').getBlocks().indexOf(currentBlock)
+        // console.log('currentBlockIndexNumber:' + currentBlockIndexNumber)
+
+        // // if the currentBlockText is blank, then go get the preceding block text instead, even if it is not a paragraph
+        // if (currentBlockText.length === 0) {
+        //     if (currentBlockIndexNumber >= 1) {
+        //     currentBlockText = wp.data.select('core/block-editor').getBlocks()[currentBlockIndexNumber - 1].attributes.content // actually the previous block
+        //     }
+        //     if (currentBlockIndexNumber >= 2) {
+        //         precedingBlockText = wp.data.select('core/block-editor').getBlocks()[currentBlockIndexNumber - 2].attributes.content
+        //     }
+        // } else {
+        //     if (currentBlockIndexNumber >= 1) {
+        //         precedingBlockText = wp.data.select('core/block-editor').getBlocks()[currentBlockIndexNumber - 1].attributes.content
+        //     }
+        // }
         const title = wp.data.select("core/editor").getEditedPostAttribute('title');
 
-        const suggestionTextPromise = getSuggestionPromise(title, precedingBlockText, currentBlockText)
-        thinkingIndicator('show');
+        const suggestionTextPromise = getSuggestionPromise(title, contextText, currentBlockText)
+        
         suggestionState = 'inactive-asked-for-suggestion'
         suggestionTextPromise.then(handleSuggestion)
     }
