@@ -217,7 +217,7 @@ function insertTextIntoCurrentBlock(text) {
     const firstPart = parts[0];
     
     // Combine current content with the new text
-    const newContent = `${currentContent}${firstPart}`;
+    const newContent = `${oldContent}${firstPart}`;
 
     // Update the block's content with the first part
     wp.data.dispatch('core/block-editor').updateBlockAttributes(selectedBlock.clientId, {
