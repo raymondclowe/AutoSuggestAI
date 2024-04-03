@@ -29,6 +29,7 @@ console.log(Version)
 // get the API key after a 10 second delay
 let myApiKey;
 let AIDelay = 5;
+let aimodel = 'open-mistral-7b'; // default cheapest model
 let nearestPTag;
 let originalNearestPTag; // this is a clone of the tag with the suggestion, prior to the suggestion being added.
 let oldContent;
@@ -79,6 +80,7 @@ setTimeout(() => {
         myApiKey = data.apikey;
         // get the integer value of the delay, it will be a string in the json data, so turn to a number
         AIDelay = parseInt(data.AIDelay);
+        aimodel = data.aimodel;
 
 
 
@@ -87,6 +89,8 @@ setTimeout(() => {
 
         console.log('API key is ' + myApiKey);
         console.log('AI Delay is ' + AIDelay);
+        console.log('AI Model is'+ aimodel);
+
         // console.log('AI Backend URL is ' + AIBackEndURL);
         // console.log('AI Prompt Template is ' + AIPromptTemplate);
     });
@@ -138,7 +142,7 @@ function getSuggestionPromise(title, context, existingText) {
 
         // console.log('messageContent is' + messageContent);
         const data = {
-            model: 'mistral-tiny',
+            model: aimodel,
             messages: [
                 {
                     role: 'user',
