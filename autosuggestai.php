@@ -95,13 +95,21 @@ function AIDelay_callback()
 }
 
 function aimodel_callback() {
-  $value = get_option('aimodel'); 
-  echo '<input 
-      type="text" 
-      id="aimodel"
-      name="aimodel"
-      value="' . esc_attr($value) . '" 
-      size="40"/>';
+  $value = get_option('aimodel');
+  $options = array(
+    'open-mistral-7b' => 'Mistral 7B ($0.25/1M tokens Input, $0.25/1M tokens Output)',  
+    'open-mixtral-8x7b' => 'Mixtral 8x7B ($0.7/1M tokens Input, $0.7/1M tokens Output)',
+    'mistral-small-latest' => 'Mistral Small ($2/1M tokens Input, $6/1M tokens Output)',
+    'mistral-medium-latest' => 'Mistral Medium ($2.7/1M tokens Input, $8.1/1M tokens Output)',
+    'mistral-large-latest' => 'Mistral Large ($8/1M tokens Input, $24/1M tokens Output)' 
+  );
+  echo '<select name="aimodel" id="aimodel">';
+  foreach ($options as $key => $label) {
+    echo '<option value="' . $key . '"';
+    if ($key == $value) echo ' selected="selected"';
+    echo '>' . $label . '</option>';
+  }
+  echo '</select>';
 }
 
 // Add REST API route
