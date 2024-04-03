@@ -89,7 +89,7 @@ setTimeout(() => {
 
         console.log('API key is ' + myApiKey);
         console.log('AI Delay is ' + AIDelay);
-        console.log('AI Model is'+ aimodel);
+        console.log('AI Model is '+ aimodel);
 
         // console.log('AI Backend URL is ' + AIBackEndURL);
         // console.log('AI Prompt Template is ' + AIPromptTemplate);
