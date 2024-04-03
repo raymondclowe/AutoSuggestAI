@@ -16,15 +16,25 @@ Activate the Plugin
 
 # Set UP
 
-Before you use it you must go to the admin panel and under Settings / AutoSuggestAI you have to set the API key, that will be one from Mistral platform.
+Before you use it you must go to the admin panel and under Settings / AutoSuggestAI you have to set the API key, that will be one from Mistral platform.  
 
-Go to Dashboard / Settings / AutoSuggestAI 
+Mistral platform:
 
-Set the API key and the delay threshold and choose your model. Start with the first/cheapest one unti you get the hang of it. It may be fine as it is, but if it is making mistakes or being unhelpful then try a more advanced model.
+- [Signup for Mistral](https://auth.mistral.ai/ui/registration)
+
+- [Create a Mistral API key](https://console.mistral.ai/api-keys/)
+
+- [Set your Mistral monthly spending limit](https://console.mistral.ai/billing/)
+
+In your wordpress:
+
+- Go to Dashboard / Settings / AutoSuggestAI 
+
+- Set the API key and the delay threshold and choose your model. Start with the first/cheapest one unti you get the hang of it. It may be fine as it is, but if it is making mistakes or being unhelpful then try a more advanced model.
 
 It costs money, but not that much so make sure you set a suitable budget (like $1 / month) and you will be fine.
 
-You can also set the delay threshold in seconds. If you set this too long then it will be unresponsive while you are writing, but setting it too short will mean lots of wasted calls to the paid api.
+- You can also set the delay threshold in seconds. If you set this too long then it will be unresponsive while you are writing, but setting it too short will mean lots of wasted calls to the paid api.
 
 ## Usage
 
