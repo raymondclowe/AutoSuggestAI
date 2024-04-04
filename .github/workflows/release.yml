@@ -12,15 +12,15 @@ jobs:
       - name: Package plugin
         run: |
           plugin_folder="AutoSuggestAI"
-          unzip sources.zip
-          cd $plugin_folder
-          zip -r ../AutoSuggestAI.zip . -x '*.git*'
+          mkdir $plugin_folder
+          find . -type f -not -path "./.git/*" -exec cp --parents {} $plugin_folder \;
+          zip -r AutoSuggestAI.zip $plugin_folder -x "*.git*"
       - name: Upload package
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ github.event.release.upload_url }} 
+          upload_url: ${{ github.event.release.upload_url }}
           asset_path: AutoSuggestAI.zip
           asset_name: AutoSuggestAI.zip
           asset_content_type: application/zip
