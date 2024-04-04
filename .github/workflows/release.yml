@@ -5,22 +5,27 @@ on:
     types: [published]
 
 jobs:
-  build:
+  build-and-upload:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: Setup environment
+        run: |
+          mkdir AutoSuggestAI
+
+      - name: Copy files excluding .git and hidden files
+        run: |
+          shopt -s extglob dotglob
+          cp -r !(AutoSuggestAI|.git) AutoSuggestAI/
+
       - name: Package plugin
         run: |
-          plugin_folder="AutoSuggestAI"
-          mkdir $plugin_folder
-          find . -type f -not -path "./.git/*" -exec cp --parents {} $plugin_folder \;
-          zip -r AutoSuggestAI.zip $plugin_folder -x "*.git*"
-      - name: Upload package
-        uses: actions/upload-release-asset@v1.0.2
+          zip -r AutoSuggestAI.zip AutoSuggestAI -x "*.git*"
+
+      - name: Create Release and Upload Asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: AutoSuggestAI.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./AutoSuggestAI.zip
-          asset_name: AutoSuggestAI.zip
-          asset_content_type: application/zip
