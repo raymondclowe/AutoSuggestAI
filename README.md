@@ -3,7 +3,7 @@ AutoSuggestAI is a WordPress plugin that uses Artificial Intelligence to suggest
 
 # Installation
 
-[Download the latest release](https://github.com/raymondclowe/AutoSuggestAI/releases/tag/v2.1.0) as a ZIP file, get the so called "Source code (zip)". You don't have to extract it.
+[Download the latest release](https://github.com/raymondclowe/AutoSuggestAI/releases/latest/download/AutoSuggestAI.zip) as a ZIP file, get the so called "Source code (zip)". You don't have to extract it.
 .
 
 On your WP blog to go Admin / Plugins / Add New Plugin and choose Upload Plugin

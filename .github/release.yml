@@ -1,0 +1,26 @@
+name: Package on Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Package plugin
+        run: |
+          plugin_folder="AutoSuggestAI"
+          unzip sources.zip
+          cd $plugin_folder
+          zip -r ../AutoSuggestAI.zip . -x '*.git*'
+      - name: Upload package
+        uses: actions/upload-release-asset@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }} 
+          asset_path: AutoSuggestAI.zip
+          asset_name: AutoSuggestAI.zip
+          asset_content_type: application/zip
