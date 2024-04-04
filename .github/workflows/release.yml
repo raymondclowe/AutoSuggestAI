@@ -8,20 +8,16 @@ jobs:
   build-and-upload:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Create subdirectory
+        run: mkdir AutoSuggestAI
 
-      - name: Setup environment
-        run: |
-          mkdir AutoSuggestAI
-
-      - name: Copy files excluding .git and hidden files
-        run: |
-          shopt -s extglob dotglob
-          cp -r !(AutoSuggestAI|.git) AutoSuggestAI/
+      - name: Checkout repository into subdirectory
+        uses: actions/checkout@v3
+        with:
+          path: AutoSuggestAI
 
       - name: Package plugin
-        run: |
-          zip -r AutoSuggestAI.zip AutoSuggestAI -x "*.git*"
+        run: zip -r AutoSuggestAI.zip AutoSuggestAI -x "AutoSuggestAI/.*"
 
       - name: Create Release and Upload Asset
         uses: softprops/action-gh-release@v1
