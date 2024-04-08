@@ -2,7 +2,7 @@
 /**
  * Plugin Name: AutoSuggestAI
  * Description: Auto suggest text in the block editor using AI
- * Version: v2.1.0
+ * Version: v2.1.1
  * Author: Raymond Lowe
  * License: GPL2
  * URL: https://github.com/raymondclowe/AutoSuggestAI
@@ -56,7 +56,7 @@ function autosuggestai_admin_init()
   add_settings_field(
     'apikey',
     'API Key',
-    'apikey_callback',
+    'autosuggestai_apikey_callback',
     'autosuggestai',
     'autosuggestai_main'
   );
@@ -64,14 +64,14 @@ function autosuggestai_admin_init()
   add_settings_field(
     'AIDelay',
     'AI Delay',
-    'aidelay_callback',
+    'autosuggestai_aidelay_callback',
     'autosuggestai',
     'autosuggestai_main'
   );
   add_settings_field(
     'aimodel',
     'AI Model Name',
-    'aimodel_callback',
+    'autosuggestai_aimodel_callback',
     'autosuggestai', 
     'autosuggestai_main'
   );
@@ -81,20 +81,20 @@ function autosuggestai_section_text()
 {
   echo '<p>Configure AutoSuggestAI settings</p>';
 }
-function apikey_callback()
+function autosuggestai_apikey_callback()
 {
   $value = get_option('apikey');
   echo '<input type="text" id="apikey" name="apikey" value="' . esc_attr($value) . '" size="40" />';
 }
 
-function AIDelay_callback()
+function autosuggestai_AIDelay_callback()
 {
   $value = get_option('AIDelay');
   echo '<input type="text" id="AIDelay" name="AIDelay" value="' . esc_attr($value) . '" size="40" />';
   echo '<a href="#" onclick="document.getElementById(\'AIDelay\').value = 5; return false;">Set to default (5)</a>';
 }
 
-function aimodel_callback() {
+function autosuggestai_aimodel_callback() {
   $value = get_option('aimodel');
   $options = array(
     'open-mistral-7b' => 'Mistral 7B ($0.25/1M tokens Input, $0.25/1M tokens Output)',  

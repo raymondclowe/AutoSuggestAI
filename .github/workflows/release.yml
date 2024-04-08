@@ -1,0 +1,28 @@
+name: Package on Release
+# Dummy change 
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create subdirectory
+        run: mkdir AutoSuggestAI
+
+      - name: Checkout repository into subdirectory
+        uses: actions/checkout@v3
+        with:
+          path: AutoSuggestAI
+
+      - name: Package plugin
+        run: zip -r AutoSuggestAI.zip AutoSuggestAI -x "AutoSuggestAI/.*"
+
+      - name: Create Release and Upload Asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: AutoSuggestAI.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
