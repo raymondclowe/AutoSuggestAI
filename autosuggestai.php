@@ -58,6 +58,7 @@ add_action('admin_init', 'autosuggestai_admin_init');
 function autosuggestai_admin_init()
 {
   register_setting('autosuggestai_options', 'apikey', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field','default' => 'sk-YOURAPIKEY',));
+  register_setting('autosuggestai_options', 'aiInternalProxy', array('type' => 'boolean', 'sanitize_callback' => 'rest_sanitize_boolean', 'default' => false));
   register_setting('autosuggestai_options', 'AIDelay', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field','default' => 5,));
   register_setting('autosuggestai_options', 'aimodel', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'mistral-tiny', ) );
   add_settings_section(
@@ -73,7 +74,13 @@ function autosuggestai_admin_init()
     'autosuggestai',
     'autosuggestai_main'
   );
-
+  add_settings_field(
+    'aiInternalProxy',
+    'Use Internal Proxy',
+    'autosuggestai_aiInternalProxy_callback',
+    'autosuggestai',
+    'autosuggestai_main'
+  );
   add_settings_field(
     'AIDelay',
     'AI Delay',
@@ -99,7 +106,11 @@ function autosuggestai_apikey_callback()
   $value = get_option('apikey');
   echo '<input type="text" id="apikey" name="apikey" value="' . esc_attr($value) . '" size="40" />';
 }
-
+function autosuggestai_aiInternalProxy_callback()
+{
+  $value = get_option('aiInternalProxy');
+  echo '<input type="checkbox" id="aiInternalProxy" name="aiInternalProxy" value="true" '. checked($value, true, false).'/> <i>Send AI API requests via the wordpress server as a proxy.</i>';
+}
 function autosuggestai_AIDelay_callback()
 {
   $value = get_option('AIDelay');
@@ -126,35 +137,39 @@ function autosuggestai_aimodel_callback() {
 }
 
 // Add REST API route
+// curl http://localhost:8881/index.php?rest_route=/autosuggestai/v1/apikey
 add_action('rest_api_init', function () {
   register_rest_route('autosuggestai/v1', '/apikey', array (
     'methods' => 'GET',
     'callback' => 'autosuggestai_get_api_key',
-    'permission_callback' => function ($request) {
-      return current_user_can('edit_posts');
-    },
+    // 'permission_callback' => function ($request) {
+    //   return current_user_can('edit_posts');
+    // },
   )
   );
 });
 
 // API key callback  
+
 function autosuggestai_get_api_key()
 {
   return array(
     'apikey' => htmlspecialchars(get_option('apikey')),
+    'aiInternalProxy' => htmlspecialchars(get_option('aiInternalProxy')),
     'AIDelay' => htmlspecialchars(get_option('AIDelay')),
     'aimodel' => htmlspecialchars(get_option('aimodel')),
   );
 }
 
-# Add WP REST API route for getting suggestion text from AI REST endpoint
+// Add WP REST API route for getting suggestion text from AI REST endpoint
+// curl -X POST http://localhost:8881/index.php?rest_route=/autosuggestai/v1/getsuggestion -H "Content-Type: application/json" -d "{\"title\":\"hello world\",\"context\":\"this is the context\",\"existingText\":\"Tell me about yellow\"}"
+
 add_action('rest_api_init', function () {
   register_rest_route('autosuggestai/v1', '/getsuggestion', array (
     'methods' => 'POST',
     'callback' => 'autosuggestai_get_suggestion',
     // 'permission_callback' => function ($request) {
-    //   return  current_user_can('edit_posts');
-      
+    //   return  current_user_can('edit_posts');      
     // },
   )
   );
@@ -213,9 +228,9 @@ EOD;
 
   $messageContent = str_replace('{prompt}', $instruction, $promptTemplate);
 
-  // error_log("Key will be : " . $myApiKey. "\n", 3, $errorLog);
-  // error_log("Message will be  : " . $messageContent. "\n", 3, $errorLog);
-  // error_log("instruction will be  : " . $instruction. "\n", 3, $errorLog);
+  error_log("Key will be : " . $myApiKey. "\n", 3, $errorLog);
+  error_log("Message will be  : " . $messageContent. "\n", 3, $errorLog);
+  error_log("instruction will be  : " . $instruction. "\n", 3, $errorLog);
 
   // $mistralApiUrl = "dummy";
   // Make API request
@@ -284,8 +299,7 @@ function autosuggestai_get_suggestion()
 }
 
 // test with curl
-// curl -X POST http://localhost:8881/index.php?rest_route=/autosuggestai/v1/getsuggestion -H "Content-Type: application/json" -d "{\"title\":\"hello world\",\"context\":\"this is the context\",\"existingText\":\"Tell me about yellow\"}"
-
+// 
 // allow REST password authentication even with no ssl (so dev environment works)
 add_filter( 'wp_is_application_passwords_available', '__return_true' );
 
