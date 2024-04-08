@@ -196,15 +196,15 @@ Here is the text to be extended:
 {text}
 EOD;
 
-$abc = `abc`;
-error_log("abc is : " . $abc. "\n", 3, $errorLog);
-error_log("template will be  : " . $promptTemplate . "\n", 3, $errorLog);
+// $abc = `abc`;
+// error_log("abc is : " . $abc. "\n", 3, $errorLog);
+// error_log("template will be  : " . $promptTemplate . "\n", 3, $errorLog);
 
 
 
   
-  error_log("Starting: autosuggestai_get_responseText\n", 3, $errorLog);
-  error_log("prompt is : " . $promptTemplate. "\n", 3, $errorLog);
+//   error_log("Starting: autosuggestai_get_responseText\n", 3, $errorLog);
+//   error_log("prompt is : " . $promptTemplate. "\n", 3, $errorLog);
 
   // Create prompt
   $instruction = str_replace('{title}', $title, $thePrompt);
@@ -213,9 +213,9 @@ error_log("template will be  : " . $promptTemplate . "\n", 3, $errorLog);
 
   $messageContent = str_replace('{prompt}', $instruction, $promptTemplate);
 
-  error_log("Key will be : " . $myApiKey. "\n", 3, $errorLog);
-  error_log("Message will be  : " . $messageContent. "\n", 3, $errorLog);
-  error_log("instruction will be  : " . $instruction. "\n", 3, $errorLog);
+  // error_log("Key will be : " . $myApiKey. "\n", 3, $errorLog);
+  // error_log("Message will be  : " . $messageContent. "\n", 3, $errorLog);
+  // error_log("instruction will be  : " . $instruction. "\n", 3, $errorLog);
 
   // $mistralApiUrl = "dummy";
   // Make API request
@@ -280,10 +280,7 @@ function autosuggestai_get_suggestion()
   $responseText = autosuggestai_get_responseText($title, $context, $existingText, $mistralApiUrl, $model, $apikey);
   
   
-  return array(
-    'suggestion' => $responseText,
-    
-  );
+  return  $responseText;
 }
 
 // test with curl
