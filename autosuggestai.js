@@ -35,6 +35,63 @@ let nearestPTag;
 let originalNearestPTag; // this is a clone of the tag with the suggestion, prior to the suggestion being added.
 let oldContent;
 let thinkingDiv;
+
+// different kinds of blocks and different wp versions may expose their text content in 
+// different ways. this helper function just gets any text from any block, regardless of the type
+// of block.
+function getBlockText(block) {
+// check what the name of the block is, what type it is.  common types are 'core/paragraph' but others
+// exist. then try the various ways to get the text from the attributes.content or attributes.content.txt
+// or attributes.content.raw or attributes.content.value or attributes.content.rendered.
+// 
+
+
+textContent = '' // maybe there is nothing here
+
+
+if (block.innerBlocks.length > 0) {
+    block.innerBlocks.forEach(innerBlock => {
+        if (innerBlock.name === 'core/list-item') {
+            textContent += '* ' + innerBlock.attributes.content + '\n';
+        } else {
+            textContent += innerBlock.attributes.content + '\n';
+        }
+    });
+} else if (block.name === 'core/paragraph') {
+    // try this, but if it fails, look at the content.text instead
+    // first check if block.attributes.content is a string
+    if (typeof block.attributes.content == 'string') {
+        textContent += block.attributes.content + '\n\n';
+    }
+    else
+    { textContent += block.attributes.content.text + '\n\n';}
+
+} else if (block.name === 'core/heading') {
+        textContent += '# ' + block.attributes.content + '\n\n';    
+} else if (block.name === 'core/image') {
+    let imageText = '';
+    if (block.attributes.alt) {
+        textContent += block.attributes.alt;
+    }
+    if (block.attributes.caption) {
+        textContent += ' ' + block.attributes.caption;
+    }
+    textContent += imageText + '\n';
+} else if (block.name === 'maxbuttons/maxbuttons-block') {
+    textContent += block.attributes.text + '\n';
+} else if (block.name === 'core/quote') {
+    textContent += '> ' + block.attributes.content + '\n';
+} else if (block.name !== 'core/post-title') {
+    textContent += block.attributes.content + '\n';
+}
+
+
+
+return textContent;
+}
+
+
+
 function thinkingIndicator(action) {
     if (action === 'show') {
         // display an animated gif of gears turning
@@ -455,47 +512,7 @@ function idleNow() {
         }
     
         // get the text from the top of the post to the current block
-        let contextText = '';
-        const currentBlockClientId = wp.data.select('core/block-editor').getSelectedBlock().clientId;
-        let reachedCurrentBlock = false;
-        const blocks = wp.data.select('core/block-editor').getBlocks();
-        blocks.forEach(block => {
-            if (block.clientId === currentBlockClientId) {
-                reachedCurrentBlock = true;
-                return; // Using return here to exit the loop is better than break, as return will exit the current function entirely, while break will only exit the loop but continue executing the rest of the function
-            }
-            if (!reachedCurrentBlock) {
-                if (block.innerBlocks.length > 0) {
-                    block.innerBlocks.forEach(innerBlock => {
-                        if (innerBlock.name === 'core/list-item') {
-                            contextText += '* ' + innerBlock.attributes.content + '\n';
-                        } else {
-                            contextText += innerBlock.attributes.content + '\n';
-                        }
-                    });
-                } else if (block.name === 'core/heading') {
-                    contextText += '# ' + block.attributes.content + '\n\n';
-                } else if (block.name === 'core/image') {
-                    let imageText = '';
-                    if (block.attributes.alt) {
-                        imageText += block.attributes.alt;
-                    }
-                    if (block.attributes.caption) {
-                        imageText += ' ' + block.attributes.caption;
-                    }
-                    contextText += imageText + '\n';
-                } else if (block.name === 'maxbuttons/maxbuttons-block') {
-                    contextText += block.attributes.text + '\n';
-                } else if (block.name === 'core/quote') {
-                    contextText += '> ' + block.attributes.content + '\n';
-                } else if (block.name !== 'core/post-title') {
-                    contextText += block.attributes.content + '\n';
-                }
-            }
-        });
-
-
-
+        let contextText = getContextText();
 
         // console.log("contextText: " + contextText)
 
@@ -525,6 +542,24 @@ function idleNow() {
         suggestionState = 'inactive-asked-for-suggestion'
         suggestionTextPromise.then(handleSuggestion)
     }
+}
+ 
+// Gets all the text before, and not including, the current block
+function getContextText() {
+    let contextText = '';
+    const currentBlockClientId = wp.data.select('core/block-editor').getSelectedBlock().clientId;
+    let reachedCurrentBlock = false;
+    const blocks = wp.data.select('core/block-editor').getBlocks();
+    blocks.forEach(block => {
+        if (block.clientId === currentBlockClientId) {
+            reachedCurrentBlock = true;
+            return; // Using return here to exit the loop is better than break, as return will exit the current function entirely, while break will only exit the loop but continue executing the rest of the function
+        }
+        if (!reachedCurrentBlock) {
+            contextText += getBlockText(block)
+        }
+    });
+    return contextText;
 }
 
 // set the idle reset function, but if this is the first time this document has loaded
