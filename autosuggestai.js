@@ -40,54 +40,49 @@ let thinkingDiv;
 // different ways. this helper function just gets any text from any block, regardless of the type
 // of block.
 function getBlockText(block) {
-// check what the name of the block is, what type it is.  common types are 'core/paragraph' but others
-// exist. then try the various ways to get the text from the attributes.content or attributes.content.txt
-// or attributes.content.raw or attributes.content.value or attributes.content.rendered.
-// 
+    // check what the name of the block is, what type it is.  common types are 'core/paragraph' but others
+    // exist. then try the various ways to get the text from the attributes.content or attributes.content.txt
+    // or attributes.content.raw or attributes.content.value or attributes.content.rendered.
+    textContent = '' // maybe there is nothing here
 
-
-textContent = '' // maybe there is nothing here
-
-
-if (block.innerBlocks.length > 0) {
-    block.innerBlocks.forEach(innerBlock => {
-        if (innerBlock.name === 'core/list-item') {
-            textContent += '* ' + innerBlock.attributes.content + '\n';
-        } else {
-            textContent += innerBlock.attributes.content + '\n';
+    if (block.innerBlocks.length > 0) {
+        block.innerBlocks.forEach(innerBlock => {
+            if (innerBlock.name === 'core/list-item') {
+                textContent += '* ' + innerBlock.attributes.content + '\n';
+            } else {
+                if (typeof innerBlock.attributes.content == 'string') {
+                    textContent += innerBlock.attributes.content + '\n';
+                }
+                else if (typeof innerBlock.attributes.content.text == 'string') { textContent += innerBlock.attributes.content.text + '\n'; }
+            }
+        });
+    } else if (block.name === 'core/paragraph') {
+        // try this, but if it fails, look at the content.text instead
+        // first check if block.attributes.content is a string
+        if (typeof block.attributes.content == 'string') {
+            textContent += block.attributes.content;
         }
-    });
-} else if (block.name === 'core/paragraph') {
-    // try this, but if it fails, look at the content.text instead
-    // first check if block.attributes.content is a string
-    if (typeof block.attributes.content == 'string') {
-        textContent += block.attributes.content + '\n\n';
+        else { textContent += block.attributes.content.text; }
+
+    } else if (block.name === 'core/heading') {
+        textContent += '# ' + block.attributes.content + '\n';
+    } else if (block.name === 'core/image') {
+        let imageText = '';
+        if (block.attributes.alt) {
+            textContent += block.attributes.alt;
+        }
+        if (block.attributes.caption) {
+            textContent += ' ' + block.attributes.caption;
+        }
+        textContent += imageText;
+    } else if (block.name === 'maxbuttons/maxbuttons-block') {
+        textContent += block.attributes.text;
+    } else if (block.name === 'core/quote') {
+        textContent += '> ' + block.attributes.content;
+    } else if (block.name !== 'core/post-title') {
+        textContent += block.attributes.content;
     }
-    else
-    { textContent += block.attributes.content.text + '\n\n';}
-
-} else if (block.name === 'core/heading') {
-        textContent += '# ' + block.attributes.content + '\n\n';    
-} else if (block.name === 'core/image') {
-    let imageText = '';
-    if (block.attributes.alt) {
-        textContent += block.attributes.alt;
-    }
-    if (block.attributes.caption) {
-        textContent += ' ' + block.attributes.caption;
-    }
-    textContent += imageText + '\n';
-} else if (block.name === 'maxbuttons/maxbuttons-block') {
-    textContent += block.attributes.text + '\n';
-} else if (block.name === 'core/quote') {
-    textContent += '> ' + block.attributes.content + '\n';
-} else if (block.name !== 'core/post-title') {
-    textContent += block.attributes.content + '\n';
-}
-
-
-
-return textContent;
+    return textContent;
 }
 
 
@@ -508,25 +503,8 @@ function idleNow() {
 
         // console.log("contextText: " + contextText)
 
-        let currentBlockText = currentBlock.attributes.content.text
-        // let precedingBlockText = ''
-
-        // const currentBlockIndexNumber = wp.data.select('core/block-editor').getBlocks().indexOf(currentBlock)
-        // console.log('currentBlockIndexNumber:' + currentBlockIndexNumber)
-
-        // // if the currentBlockText is blank, then go get the preceding block text instead, even if it is not a paragraph
-        // if (currentBlockText.length === 0) {
-        //     if (currentBlockIndexNumber >= 1) {
-        //     currentBlockText = wp.data.select('core/block-editor').getBlocks()[currentBlockIndexNumber - 1].attributes.content // actually the previous block
-        //     }
-        //     if (currentBlockIndexNumber >= 2) {
-        //         precedingBlockText = wp.data.select('core/block-editor').getBlocks()[currentBlockIndexNumber - 2].attributes.content
-        //     }
-        // } else {
-        //     if (currentBlockIndexNumber >= 1) {
-        //         precedingBlockText = wp.data.select('core/block-editor').getBlocks()[currentBlockIndexNumber - 1].attributes.content
-        //     }
-        // }
+        let currentBlockText = getBlockText(currentBlock)
+  
         const title = wp.data.select("core/editor").getEditedPostAttribute('title');
 
         const suggestionTextPromise = getSuggestionPromise(title, contextText, currentBlockText)
@@ -548,7 +526,7 @@ function getContextText() {
             return; // Using return here to exit the loop is better than break, as return will exit the current function entirely, while break will only exit the loop but continue executing the rest of the function
         }
         if (!reachedCurrentBlock) {
-            contextText += getBlockText(block)
+            contextText += getBlockText(block) + '\n\n'
         }
     });
     return contextText;
