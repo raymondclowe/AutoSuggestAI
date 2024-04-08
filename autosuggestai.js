@@ -496,17 +496,9 @@ function idleNow() {
             console.log ("Selected block is not a paragraph block.");
             return;
         }
-        // check to see if currentBlock.attributes.content is a string, if not get the currentBlock.attributes.content.text instead
-        currentblockText = ''
-        if (typeof currentBlock.attributes.content ==='string') {
-            currentblockText = currentBlock.attributes.content
-            console.log("currentBlock.attributes.content is a string")
-        }
-        else {
-            console.log("currentBlock.attributes.content is not a string")
-            currentblockText = currentBlock.attributes.content.text
-        }
-        if (currentBlock.attributes.content.length > 0 && currentBlock.attributes.content[currentBlock.attributes.content.length - 1] !== " ") {
+        // only proceed if we are either on a block with a space at the end, or on an empty block
+        currentblockText = getBlockText(currentBlock)
+        if (currentblockText.length > 0 && currentblockText[currentblockText.length - 1] !== " ") {
             console.log("Last character is not a whitespace, so we are not suggesting")
             return;
         }
