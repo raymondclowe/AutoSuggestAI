@@ -1,4 +1,4 @@
-const Version = "v2.2.0";
+const Version = "v2.3.0dev";
 
 console.log(Version)
 
@@ -27,9 +27,10 @@ console.log(Version)
 // state becomes State 1.
 
 // get the API key after a 10 second delay
-let myApiKey;
+let mistralApiKey;
 let AIDelay = 5;
 let aiInternalProxy = false
+let aiProviderEndpointUrl = 'https://api.mistral.ai/v1/chat/completions';
 let aimodel = 'open-mistral-7b'; // default cheapest model
 let nearestPTag;
 let originalNearestPTag; // this is a clone of the tag with the suggestion, prior to the suggestion being added.
@@ -123,14 +124,14 @@ function thinkingIndicator(action) {
 
 
 setTimeout(() => {
-    fetch('/index.php?rest_route=/autosuggestai/v1/apikey', {
+    fetch('/index.php?rest_route=/autosuggestai/v1/config', {
         headers: new Headers({
             'X-WP-Nonce': autosuggestai.api_nonce
         })
     }).then(res => res.json()
     ).then(data => {
         console.log(data);
-        myApiKey = data.apikey;
+        mistralApiKey = data.aimistralkey;
         // get the integer value of the delay, it will be a string in the json data, so turn to a number
         AIDelay = parseInt(data.AIDelay);
         // if data.aiInternalProxy is a text strihg "1" then set this to true, otherwise false
@@ -140,7 +141,7 @@ setTimeout(() => {
         // let AIBackEndURL = data.AIBackEndURL;
         // let AIPromptTemplate = data.AIPromptTemplate;
 
-        console.log('API key is ' + myApiKey);
+        console.log('Mistral API key is ' + mistralApiKey);
         console.log('AI Internal Proxy is' + aiInternalProxy);
         console.log('AI Delay is ' + AIDelay);
         console.log('AI Model is ' + aimodel);
@@ -215,13 +216,18 @@ function getSuggestionPromise(title, context, existingText) {
             return fetch(mistralApiUrl, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${myApiKey}`,
+                    'Authorization': `Bearer ${mistralApiKey}`,
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify(data)
             })
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(res.statusText);
+                    }
+                    return res.json();
+                })
                 .then(data => {
                     thinkingIndicator('hide');
                     responseText = data.choices[0].message.content.trim();
@@ -231,46 +237,52 @@ function getSuggestionPromise(title, context, existingText) {
                         responseText = responseText.substr(existingText.trim().length);
                     }
                     resolve(responseText);
-                });
-        });
-    }
-    else 
-    {
-        console.log('Passing title, context, and existing text to the internal proxy');
-    // use the WPproxy, pass the title, context, and existing text to the proxy
-    // and get the response from the proxy
-    
-        return new Promise((resolve) => {
-        thinkingIndicator('show');
-        // pass the text fields directly to our internal wp proxy
-            return fetch('/index.php?rest_route=/autosuggestai/v1/getsuggestion', {
-                method: 'POST',
-                headers: {
-                    'X-WP-Nonce': autosuggestai.api_nonce
-                },
-                body: JSON.stringify({
-                    title: title,
-                    context: context,
-                    existingText: existingText
                 })
-            })
-                .then(res => res.json())
-                .then(data => {
+                .catch(error => {
+                    resolve(" API return error : check your api key and model name");
                     thinkingIndicator('hide');
-                    responseText = data['suggestion'];
-                    // check if the responseText starts with the existingText, and if so trim it off
-                    if (responseText.startsWith(existingText.trim())) {
-                        responseText = responseText.substr(existingText.trim().length);
-                    }
-                    resolve(responseText);
+                    console.log(error);
                 })
-                .catch(err => {
-                    thinkingIndicator('hide');
-                    console.error(err);
-                });
-        });
+        }
+        );
+    }                   
+    else
+        {
+            console.log('Passing title, context, and existing text to the internal proxy');
+            // use the WPproxy, pass the title, context, and existing text to the proxy
+            // and get the response from the proxy
+
+            return new Promise((resolve) => {
+                thinkingIndicator('show');
+                // pass the text fields directly to our internal wp proxy
+                return fetch('/index.php?rest_route=/autosuggestai/v1/getsuggestion', {
+                    method: 'POST',
+                    headers: {
+                        'X-WP-Nonce': autosuggestai.api_nonce
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        context: context,
+                        existingText: existingText
+                    })
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        thinkingIndicator('hide');
+                        responseText = data['suggestion'];
+                        // check if the responseText starts with the existingText, and if so trim it off
+                        if (responseText.startsWith(existingText.trim())) {
+                            responseText = responseText.substr(existingText.trim().length);
+                        }
+                        resolve(responseText);
+                    })
+                    .catch(err => {
+                        thinkingIndicator('hide');
+                        console.error(err);
+                    });
+            });
+        }
     }
-}
 
 
 
