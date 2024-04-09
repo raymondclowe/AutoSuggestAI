@@ -3,7 +3,7 @@ $errorLog = __DIR__ . '/error_log.txt';
 /**
  * Plugin Name: AutoSuggestAI
  * Description: Auto suggest text in the block editor using AI
- * Version: v2.3.0dev
+ * Version: v2.3.0
  * Author: Raymond Lowe
  * License: GPL2
  * URL: https://github.com/raymondclowe/AutoSuggestAI
@@ -289,7 +289,7 @@ EOD;
 
   $messageContent = str_replace('{prompt}', $instruction, $promptTemplate);
 
-error_log("Key will be : " . $aiapikey. "\n", 3, $errorLog);
+// error_log("Key will be : " . $aiapikey. "\n", 3, $errorLog);
 // error_log("Message will be  : " . $messageContent. "\n", 3, $errorLog);
 // error_log("instruction will be  : " . $instruction. "\n", 3, $errorLog);
 
@@ -332,7 +332,7 @@ error_log("Key will be : " . $aiapikey. "\n", 3, $errorLog);
   }
   
   $data = json_decode(wp_remote_retrieve_body($response), true);
- error_log("Response: " . wp_remote_retrieve_body($response) . "\n", 3, $errorLog);
+//  error_log("Response: " . wp_remote_retrieve_body($response) . "\n", 3, $errorLog);
   $responseText = trim($data['choices'][0]['message']['content']);
 
   if (strpos($responseText, $existingText) === 0) {
