@@ -178,7 +178,8 @@ add_action('rest_api_init', function () {
 
 function autosuggestai_get_responseText($title, $context, $existingText, $mistralApiUrl, $aimodel, $myApiKey) {
 
-  // global $errorLog;
+// global $errorLog;
+
 $promptTemplate = "[INST] {prompt} [/INST]"; // <s> only needed for multi turn
 
 $thePrompt = <<<EOD
@@ -262,6 +263,7 @@ EOD;
 
   if ( is_wp_error( $response ) ) {  
     $error_code = $response->get_error_code();
+    // error_log("Error: ". $error_code. "\n", 3, $errorLog);
     $error_message = $response->get_error_message();
     $status_code = $response->get_error_data('http_code');
 
@@ -278,7 +280,9 @@ EOD;
     $responseText = substr($responseText, strlen($existingText));
   }
 
-  return $responseText;
+  // error_log("responseText will be : " . $responseText. "\n", 3, $errorLog);
+
+  return array('suggestion' => $responseText);
 
 }
 
