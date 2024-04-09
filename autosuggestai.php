@@ -12,7 +12,7 @@ $errorLog = __DIR__ . '/error_log.txt';
 defined('ABSPATH') or die('No script kiddies please!');
 
 // Where you want to log errors
-error_log("Error message", 3, $errorLog);
+// error_log("Error message", 3, $errorLog);
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -57,10 +57,14 @@ add_action('admin_init', 'autosuggestai_admin_init');
 
 function autosuggestai_admin_init()
 {
-  register_setting('autosuggestai_options', 'aimistralkey', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field','default' => 'sk-mistralapikey',));
+  register_setting('autosuggestai_options', 'airesturl', array('type' => 'string', 'sanitize_callback' => 'sanitize_url','default' => 'https://api.mistral.ai/v1/chat/completions',));
+  register_setting('autosuggestai_options', 'aiapikey', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field','default' => 'sk-xxxxxxxxxxxxxx',));
   register_setting('autosuggestai_options', 'aiInternalProxy', array('type' => 'boolean', 'sanitize_callback' => 'rest_sanitize_boolean', 'default' => false));
   register_setting('autosuggestai_options', 'AIDelay', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field','default' => 5,));
   register_setting('autosuggestai_options', 'aimodel', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'mistral-tiny', ) );
+  register_setting('autosuggestai_options', 'ainotes', array('type' => 'string', 'sanitize_callback' => 'wp_kses_post'));
+
+
   add_settings_section(
     'autosuggestai_main',
     'Main Settings',
@@ -68,12 +72,19 @@ function autosuggestai_admin_init()
     'autosuggestai'
   );
   add_settings_field(
-    'aimistralkey',
-    'Mistral API Key',
-    'autosuggestai_aimistralkey_callback',
+    'airesturl',
+    'AI REST URL',
+    'autosuggestai_airesturl_callback',
     'autosuggestai',
     'autosuggestai_main'
   );
+  add_settings_field(
+    'aiapikey',
+    'API Key',
+    'autosuggestai_aiapikey_callback',
+    'autosuggestai',
+    'autosuggestai_main'
+  );  
   add_settings_field(
     'aiInternalProxy',
     'Use Internal Proxy',
@@ -95,16 +106,46 @@ function autosuggestai_admin_init()
     'autosuggestai', 
     'autosuggestai_main'
   );
+  add_settings_field(
+    'ainotes',
+    'AI Notes',
+    'autosuggestai_ainotes_callback',
+    'autosuggestai',
+    'autosuggestai_main'
+  );
+
 }
+
 
 function autosuggestai_section_text()
 {
   echo '<p>Configure AutoSuggestAI settings</p>';
 }
-function autosuggestai_aimistralkey_callback()
+
+function autosuggestai_airesturl_callback()
 {
-  $value = get_option('aimistralkey');
-  echo '<input type="text" id="aimistralkey" name="aimistralkey" value="' . esc_attr($value) . '" size="40" />';
+  $value = get_option('airesturl');
+  echo '<input type="text" id="airesturl" name="airesturl" value="' . esc_attr($value) . '" size="40" /> <a href="https://www.php.net/manual/en/function.esc-attr.php">?</a>';
+  echo '<div style="max-width: 500px; margin-top: 5px;"><i>';
+  echo 'Note: This must be an OpenAI compatible endpoint, ';
+  echo '<a href="#" onclick="document.getElementById(\'airesturl\').value = \'https://api.openai.com/v1/chat/completions\';">OpenAI</a>, ';
+  echo '<a href="#" onclick="document.getElementById(\'airesturl\').value = \'https://openrouter.ai/api/v1/chat/completions\';">OpenRouter.AI</a> and ';
+  echo '<a href="#" onclick="document.getElementById(\'airesturl\').value = \'https://api.mistral.ai/v1/chat/completions\';">Mistral.AI</a> known to work';
+  echo '</i></div>';
+
+
+
+}
+function autosuggestai_aiapikey_callback()
+{
+  $value = get_option('aiapikey');
+  echo '<input type="text" id="aiapikey" name="aiapikey" value="' . esc_attr($value) . '" size="40" />';
+  echo '<div style="max-width: 500px; margin-top: 5px;"><i>';
+  echo 'Get your keys here: <a href="https://platform.openai.com/account/api-keys" target="_blank">OpenAI</a>, ';  
+  echo '<a href="https://openrouter.ai/keys" target="_blank">OpenRouter.AI</a>, ';
+  echo '<a href="https://console.mistral.ai/api-keys/" target="_blank">Mistral.</a> You will need to create and fund an account yourself.';
+  echo '</i></div>';
+  
 }
 function autosuggestai_aiInternalProxy_callback()
 {
@@ -115,26 +156,44 @@ function autosuggestai_AIDelay_callback()
 {
   $value = get_option('AIDelay');
   echo '<input type="text" id="AIDelay" name="AIDelay" value="' . esc_attr($value) . '" size="40" />';
-  echo '<a href="#" onclick="document.getElementById(\'AIDelay\').value = 5; return false;">Set to default (5)</a>';
+  echo '<div style="max-width: 500px; margin-top: 5px;">';
+  echo ' <a href="#" onclick="document.getElementById(\'AIDelay\').value = 5; return false;">Set to default (5)</a>';
+  echo '</div>';
 }
 
-function autosuggestai_aimodel_callback() {
+function autosuggestai_aimodel_callback()
+{
   $value = get_option('aimodel');
-  $options = array(
-    'open-mistral-7b' => 'Mistral 7B ($0.25/1M tokens Input, $0.25/1M tokens Output)',  
-    'open-mixtral-8x7b' => 'Mixtral 8x7B ($0.7/1M tokens Input, $0.7/1M tokens Output)',
-    'mistral-small-latest' => 'Mistral Small ($2/1M tokens Input, $6/1M tokens Output)',
-    'mistral-medium-latest' => 'Mistral Medium ($2.7/1M tokens Input, $8.1/1M tokens Output)',
-    'mistral-large-latest' => 'Mistral Large ($8/1M tokens Input, $24/1M tokens Output)' 
-  );
-  echo '<select name="aimodel" id="aimodel">';
-  foreach ($options as $key => $label) {
-    echo '<option value="' . $key . '"';
-    if ($key == $value) echo ' selected="selected"';
-    echo '>' . $label . '</option>';
-  }
-  echo '</select>';
+  echo '<input type="text" name="aimodel" id="aimodel" value="' . $value . '">';
+  echo '<div style="max-width: 500px; margin-top: 5px;">';
+  echo '<i>Common models: ';
+  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'gpt-3.5-turbo\';">gpt-3.5-turbo</a>, ';
+  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'open-mistral-7b\';">open-mistral-7b</a>, ';
+  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'llama-2\';">llama-2</a>. ';
+  echo '<p>For a full list, see each provider. </p>';
+  echo '<ul>';
+  echo '<li>Openrouter.ai: <a href="https://openrouter.ai/docs#models" target="_blank">https://openrouter.ai/docs#models</a> &#x2197;</li>';
+  echo '<li>Mistral.ai: <a href="https://docs.mistral.ai/guides/model-selection/" target="_blank">https://docs.mistral.ai/guides/model-selection/</a> &#x2197;</li>';
+  echo '<li>OpenAI: <a href="https://platform.openai.com/docs/models/overview" target="_blank">https://platform.openai.com/docs/models/overview</a> &#x2197;</li>';
+  echo '</ul>';
+
+  echo '</i></div>';
 }
+
+function autosuggestai_ainotes_callback()
+{
+  $value = get_option('ainotes');
+
+  // Use wp_editor to create a rich text editor field
+  echo '<div style="max-width: 500px;">';
+  wp_editor($value, 'ainotes', array('textarea_name' => 'ainotes'));
+  echo '</div>';
+  echo '<div style="max-width: 500px; margin-top: 5px;">';
+  echo '<i>Use the notes field to record keys or other options you might need later.</i>';
+  echo '</div>';
+
+}
+
 
 // Add REST API route
 // curl http://localhost:8881/index.php?rest_route=/autosuggestai/v1/config
@@ -155,7 +214,8 @@ add_action('rest_api_init', function () {
 function autosuggestai_get_config()
 {
   return array(
-    'aimistralkey' => htmlspecialchars(get_option('aimistralkey')),
+    'airesturl' => htmlspecialchars(get_option('airesturl')),
+    'aiapikey' => htmlspecialchars(get_option('aiapikey')),
     'aiInternalProxy' => htmlspecialchars(get_option('aiInternalProxy')),
     'AIDelay' => htmlspecialchars(get_option('AIDelay')),
     'aimodel' => htmlspecialchars(get_option('aimodel')),
@@ -176,7 +236,7 @@ add_action('rest_api_init', function () {
   );
 });
 
-function autosuggestai_get_responseText($title, $context, $existingText, $mistralApiUrl, $aimodel, $aimistralKey) {
+function autosuggestai_get_responseText($title, $context, $existingText, $mistralApiUrl, $aimodel, $aiapikey) {
 
 global $errorLog;
 
@@ -229,7 +289,7 @@ EOD;
 
   $messageContent = str_replace('{prompt}', $instruction, $promptTemplate);
 
-error_log("Key will be : " . $aimistralKey. "\n", 3, $errorLog);
+error_log("Key will be : " . $aiapikey. "\n", 3, $errorLog);
 // error_log("Message will be  : " . $messageContent. "\n", 3, $errorLog);
 // error_log("instruction will be  : " . $instruction. "\n", 3, $errorLog);
 
@@ -242,7 +302,7 @@ error_log("Key will be : " . $aimistralKey. "\n", 3, $errorLog);
     'httpversion' => '1.0',
     'blocking' => true,  
     'headers' => array(
-      'Authorization' => 'Bearer ' . $aimistralKey,
+      'Authorization' => 'Bearer ' . $aiapikey,
       'Content-Type' => 'application/json',
       'Accept' => 'application/json',
     ),
@@ -255,7 +315,7 @@ error_log("Key will be : " . $aimistralKey. "\n", 3, $errorLog);
       'max_tokens' => 100,
       'top_p' => 0.9,
       'stream' => false,
-      'random_seed' => null
+      // 'random_seed' => null  // openai doesn't support this field
     ))
     )
   );
@@ -294,11 +354,11 @@ function autosuggestai_get_suggestion()
   $title = $data->title;
   $context = $data->context;
   $existingText = $data->existingText;
-  $aimistralkey = get_option('aimistralkey');
+  $aiapikey = get_option('aiapikey');
   $model = get_option('aimodel');
-  $mistralApiUrl = 'https://api.mistral.ai/v1/chat/completions';
+  $aiRestUrl = get_option('airesturl');
 
-  $responseText = autosuggestai_get_responseText($title, $context, $existingText, $mistralApiUrl, $model, $aimistralkey);
+  $responseText = autosuggestai_get_responseText($title, $context, $existingText, $aiRestUrl, $model, $aiapikey);
   
   
   return  $responseText;

@@ -27,10 +27,10 @@ console.log(Version)
 // state becomes State 1.
 
 // get the API key after a 10 second delay
-let mistralApiKey;
+let aiApiKey;
 let AIDelay = 5;
 let aiInternalProxy = false
-let aiProviderEndpointUrl = 'https://api.mistral.ai/v1/chat/completions';
+let aiRestUrl = 'https://api.mistral.ai/v1/chat/completions';
 let aimodel = 'open-mistral-7b'; // default cheapest model
 let nearestPTag;
 let originalNearestPTag; // this is a clone of the tag with the suggestion, prior to the suggestion being added.
@@ -131,25 +131,22 @@ setTimeout(() => {
     }).then(res => res.json()
     ).then(data => {
         console.log(data);
-        mistralApiKey = data.aimistralkey;
+        airesturl = data.airesturl;
+        aiApiKey = data.aiapikey;
         // get the integer value of the delay, it will be a string in the json data, so turn to a number
         AIDelay = parseInt(data.AIDelay);
         // if data.aiInternalProxy is a text strihg "1" then set this to true, otherwise false
         aiInternalProxy = data.aiInternalProxy === "1";
         aimodel = data.aimodel;
 
-        // let AIBackEndURL = data.AIBackEndURL;
-        // let AIPromptTemplate = data.AIPromptTemplate;
-
-        console.log('Mistral API key is ' + mistralApiKey);
+        console.log('API rest URL is '+ airesturl);
+        console.log('API key is ' + aiApiKey);
         console.log('AI Internal Proxy is' + aiInternalProxy);
         console.log('AI Delay is ' + AIDelay);
         console.log('AI Model is ' + aimodel);
 
-        // console.log('AI Backend URL is ' + AIBackEndURL);
-        // console.log('AI Prompt Template is ' + AIPromptTemplate);
     });
-}, 10000);
+}, 5000);
 
 
 const promptTemplate = `[INST] {prompt} [/INST]`; // <s> only needed for multi turn
@@ -184,7 +181,7 @@ Here is the text to be extended:
 
 {text}`;
 
-const mistralApiUrl = 'https://api.mistral.ai/v1/chat/completions';
+// const mistralApiUrl = 'https://api.mistral.ai/v1/chat/completions';
 
 
 function getSuggestionPromise(title, context, existingText) {
@@ -210,13 +207,13 @@ function getSuggestionPromise(title, context, existingText) {
                 // top_k: 50,
                 stream: false,
                 // unsafe_prompt: false,
-                random_seed: null
+                // random_seed: null // openai doesn't support this field
             };
             // Make the API request
-            return fetch(mistralApiUrl, {
+            return fetch(airesturl, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${mistralApiKey}`,
+                    'Authorization': `Bearer ${aiApiKey}`,
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
