@@ -227,8 +227,8 @@ function getSuggestionPromise(title, context, existingText) {
                     responseText = data.choices[0].message.content.trim();
                     // sometimes the response text starts with the existingText, if that is
                     // true then we should trim it off before returning it.
-                    if (responseText.startsWith(existingText)) {
-                        responseText = responseText.substr(existingText.length);
+                    if (responseText.startsWith(existingText.trim())) {
+                        responseText = responseText.substr(existingText.trim().length);
                     }
                     resolve(responseText);
                 });
@@ -254,10 +254,14 @@ function getSuggestionPromise(title, context, existingText) {
                     existingText: existingText
                 })
             })
-                .then(res => res.text())
+                .then(res => res.json())
                 .then(data => {
                     thinkingIndicator('hide');
-                    responseText = data;
+                    responseText = data['suggestion'];
+                    // check if the responseText starts with the existingText, and if so trim it off
+                    if (responseText.startsWith(existingText.trim())) {
+                        responseText = responseText.substr(existingText.trim().length);
+                    }
                     resolve(responseText);
                 })
                 .catch(err => {
@@ -353,6 +357,8 @@ function insertTextIntoCurrentBlock(text) {
         // Move cursor to end of last inserted block
         const lastBlockId = prevBlockId;
         wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", parts[parts.length - 1].length, parts[parts.length - 1].length);
+        // moveCursorToEnd();
+
     }
 }
 
@@ -455,7 +461,7 @@ function handleSuggestion(text) {
 
     setTimeout(function () {
         moveCursorTo(oldContent.length);
-    }, 2000);
+    }, 1000);
     // wait for a tab
     document.addEventListener('keydown', tabHandler);
 
