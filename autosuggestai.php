@@ -14,13 +14,13 @@ defined('ABSPATH') or die('No script kiddies please!');
 // // Where you want to log errors
 // error_log("Error message", 3, $errorLog);
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// ini_set('display_errors', 1);
+// ini_set('display_startup_errors', 1);
+// error_reporting(E_ALL);
 
-error_reporting(E_ALL);
-ini_set('log_errors', 1);
-ini_set('error_log', $errorLog);
+// error_reporting(E_ALL);
+// ini_set('log_errors', 1);
+// ini_set('error_log', $errorLog);
 
 
 function autosuggestai_enqueue_scripts()
@@ -142,12 +142,13 @@ add_action('rest_api_init', function () {
   register_rest_route('autosuggestai/v1', '/apikey', array (
     'methods' => 'GET',
     'callback' => 'autosuggestai_get_api_key',
-    // 'permission_callback' => function ($request) {
-    //   return current_user_can('edit_posts');
-    // },
+    'permission_callback' => function ($request) {
+      return current_user_can('edit_posts') || $_SERVER['HTTP_HOST'] === 'localhost';
+    }
   )
   );
 });
+
 
 // API key callback  
 
@@ -168,16 +169,16 @@ add_action('rest_api_init', function () {
   register_rest_route('autosuggestai/v1', '/getsuggestion', array (
     'methods' => 'POST',
     'callback' => 'autosuggestai_get_suggestion',
-    // 'permission_callback' => function ($request) {
-    //   return  current_user_can('edit_posts');      
-    // },
+    'permission_callback' => function ($request) {
+      return  current_user_can('edit_posts');      
+    },
   )
   );
 });
 
 function autosuggestai_get_responseText($title, $context, $existingText, $mistralApiUrl, $aimodel, $myApiKey) {
 
-  global $errorLog;
+  // global $errorLog;
 $promptTemplate = "[INST] {prompt} [/INST]"; // <s> only needed for multi turn
 
 $thePrompt = <<<EOD
@@ -228,9 +229,9 @@ EOD;
 
   $messageContent = str_replace('{prompt}', $instruction, $promptTemplate);
 
-  error_log("Key will be : " . $myApiKey. "\n", 3, $errorLog);
-  error_log("Message will be  : " . $messageContent. "\n", 3, $errorLog);
-  error_log("instruction will be  : " . $instruction. "\n", 3, $errorLog);
+// error_log("Key will be : " . $myApiKey. "\n", 3, $errorLog);
+// error_log("Message will be  : " . $messageContent. "\n", 3, $errorLog);
+// error_log("instruction will be  : " . $instruction. "\n", 3, $errorLog);
 
   // $mistralApiUrl = "dummy";
   // Make API request
@@ -259,16 +260,18 @@ EOD;
     )
   );
 
+  if ( is_wp_error( $response ) ) {  
+    $error_code = $response->get_error_code();
+    $error_message = $response->get_error_message();
+    $status_code = $response->get_error_data('http_code');
 
-
-  if ( is_wp_error( $response ) ) {
-    // Handle error
-    error_log("is_wp_error \n", 3, $errorLog);
-    return false; 
+    // assemble errors into a sensible string and return it
+    $error_string = "Error code: ". $error_code. " - ". $error_message. " - Status code: ". $status_code;
+    return $error_string;    
   }
-
+  
   $data = json_decode(wp_remote_retrieve_body($response), true);
-  error_log("Response: " . wp_remote_retrieve_body($response) . "\n", 3, $errorLog);
+// error_log("Response: " . wp_remote_retrieve_body($response) . "\n", 3, $errorLog);
   $responseText = trim($data['choices'][0]['message']['content']);
 
   if (strpos($responseText, $existingText) === 0) {
@@ -301,6 +304,9 @@ function autosuggestai_get_suggestion()
 // test with curl
 // 
 // allow REST password authentication even with no ssl (so dev environment works)
-add_filter( 'wp_is_application_passwords_available', '__return_true' );
+if ( $_SERVER['HTTP_HOST'] === 'localhost' ) {
+  add_filter( 'wp_is_application_passwords_available', '__return_true' ); 
+}
+
 
 ?>
