@@ -3,7 +3,7 @@ AutoSuggestAI is a WordPress plugin that uses Artificial Intelligence to suggest
 
 # Installation
 
-[Download the latest release](https://github.com/raymondclowe/AutoSuggestAI/releases/latest/download/AutoSuggestAI.zip) as a ZIP file, get the so called "Source code (zip)". You don't have to extract it.
+[Download the latest release](https://github.com/raymondclowe/AutoSuggestAI/releases/latest/download/AutoSuggestAI.zip) as a ZIP file. You don't have to extract it.
 .
 
 On your WP blog to go Admin / Plugins / Add New Plugin and choose Upload Plugin
@@ -33,6 +33,8 @@ In your wordpress:
 - Set the API key and the delay threshold and choose your model. Start with the first/cheapest one unti you get the hang of it. It may be fine as it is, but if it is making mistakes or being unhelpful then try a more advanced model.
 
 It costs money, but not that much so make sure you set a suitable budget (like $1 / month) and you will be fine.
+
+- Choose whether to use the Internal Proxy.  When cleared, the default, then your PC directly talks to the AI provider, but when you turn on Internal Proxy then your PC talks only to your WordPress server, and that server will talk to the AI provider. This is useful if you are behind a firewall or if you are using a VPN.
 
 - You can also set the delay threshold in seconds. If you set this too long then it will be unresponsive while you are writing, but setting it too short will mean lots of wasted calls to the paid api.
 
