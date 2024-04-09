@@ -277,6 +277,12 @@ let suggestionState = 'active';
 let suggestionText;
 
 
+/**
+ * Moves the cursor position in the block editor.
+ *
+ * @param {number} cursorPosition - The new cursor position.
+ * @returns {void}
+ */
 function moveCursorTo(cursorPosition) {
     console.log("Move cursor to " + cursorPosition)
     wp.data.dispatch('core/block-editor').selectionChange(wp.data.select('core/block-editor').getSelectedBlock().clientId, "content", cursorPosition, cursorPosition);
