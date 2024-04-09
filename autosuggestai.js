@@ -1,4 +1,4 @@
-const Version = "v2.1.1";
+const Version = "v2.2.0";
 
 console.log(Version)
 
@@ -29,11 +29,64 @@ console.log(Version)
 // get the API key after a 10 second delay
 let myApiKey;
 let AIDelay = 5;
+let aiInternalProxy = false
 let aimodel = 'open-mistral-7b'; // default cheapest model
 let nearestPTag;
 let originalNearestPTag; // this is a clone of the tag with the suggestion, prior to the suggestion being added.
 let oldContent;
 let thinkingDiv;
+
+// different kinds of blocks and different wp versions may expose their text content in 
+// different ways. this helper function just gets any text from any block, regardless of the type
+// of block.
+function getBlockText(block) {
+    // check what the name of the block is, what type it is.  common types are 'core/paragraph' but others
+    // exist. then try the various ways to get the text from the attributes.content or attributes.content.txt
+    // or attributes.content.raw or attributes.content.value or attributes.content.rendered.
+    textContent = '' // maybe there is nothing here
+
+    if (block.innerBlocks.length > 0) {
+        block.innerBlocks.forEach(innerBlock => {
+            if (innerBlock.name === 'core/list-item') {
+                textContent += '* ' + innerBlock.attributes.content + '\n';
+            } else {
+                if (typeof innerBlock.attributes.content == 'string') {
+                    textContent += innerBlock.attributes.content + '\n';
+                }
+                else if (typeof innerBlock.attributes.content.text == 'string') { textContent += innerBlock.attributes.content.text + '\n'; }
+            }
+        });
+    } else if (block.name === 'core/paragraph') {
+        // try this, but if it fails, look at the content.text instead
+        // first check if block.attributes.content is a string
+        if (typeof block.attributes.content == 'string') {
+            textContent += block.attributes.content;
+        }
+        else { textContent += block.attributes.content.text; }
+
+    } else if (block.name === 'core/heading') {
+        textContent += '# ' + block.attributes.content + '\n';
+    } else if (block.name === 'core/image') {
+        let imageText = '';
+        if (block.attributes.alt) {
+            textContent += block.attributes.alt;
+        }
+        if (block.attributes.caption) {
+            textContent += ' ' + block.attributes.caption;
+        }
+        textContent += imageText;
+    } else if (block.name === 'maxbuttons/maxbuttons-block') {
+        textContent += block.attributes.text;
+    } else if (block.name === 'core/quote') {
+        textContent += '> ' + block.attributes.content;
+    } else if (block.name !== 'core/post-title') {
+        textContent += block.attributes.content;
+    }
+    return textContent;
+}
+
+
+
 function thinkingIndicator(action) {
     if (action === 'show') {
         // display an animated gif of gears turning
@@ -49,17 +102,17 @@ function thinkingIndicator(action) {
             thinkingDiv.style.bottom = '0';
             // make it bottom centered
             thinkingDiv.style.left = '50%';
-            
+
             thinkingDiv.style.zIndex = '10000';
             thinkingDiv.style.width = '100px';
             thinkingDiv.style.height = '100px';
             // use symbols for the content, don't use any image file
-            thinkingDiv.innerHTML = '🧑‍💻';            
+            thinkingDiv.innerHTML = '🧑‍💻';
             document.body.appendChild(thinkingDiv);
             // now attach annimation using css
 
         }
-        
+
     } else if (action === 'hide') {
         // remove the animated gif
         // hide the element
@@ -80,16 +133,17 @@ setTimeout(() => {
         myApiKey = data.apikey;
         // get the integer value of the delay, it will be a string in the json data, so turn to a number
         AIDelay = parseInt(data.AIDelay);
+        // if data.aiInternalProxy is a text strihg "1" then set this to true, otherwise false
+        aiInternalProxy = data.aiInternalProxy === "1";
         aimodel = data.aimodel;
-
-
 
         // let AIBackEndURL = data.AIBackEndURL;
         // let AIPromptTemplate = data.AIPromptTemplate;
 
         console.log('API key is ' + myApiKey);
+        console.log('AI Internal Proxy is' + aiInternalProxy);
         console.log('AI Delay is ' + AIDelay);
-        console.log('AI Model is '+ aimodel);
+        console.log('AI Model is ' + aimodel);
 
         // console.log('AI Backend URL is ' + AIBackEndURL);
         // console.log('AI Prompt Template is ' + AIPromptTemplate);
@@ -133,54 +187,91 @@ const mistralApiUrl = 'https://api.mistral.ai/v1/chat/completions';
 
 
 function getSuggestionPromise(title, context, existingText) {
-    // return a promise to a fetch to the mistral api
-    return new Promise((resolve) => {
-        // create the total prompt using the template, the prompt, and the existing text.
-        instruction = thePrompt.replace('{title}', title).replace('{context}', context).replace('{text}', existingText.trim() + " ... ");
-
-        messageContent = promptTemplate.replace('{prompt}', instruction)
-
-        // console.log('messageContent is' + messageContent);
-        const data = {
-            model: aimodel,
-            messages: [
-                {
-                    role: 'user',
-                    content: messageContent
-                }
-            ],
-            temperature: 0.6,
-            max_tokens: 100,
-            top_p: 0.9,
-            // top_k: 50,
-            stream: false,
-            // unsafe_prompt: false,
-            random_seed: null
-        };
-
-        // Make the API request
-        return fetch(mistralApiUrl, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${myApiKey}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(data)
-        })
-            .then(res => res.json())
-            .then(data => {
-                thinkingIndicator('hide');
-                responseText = data.choices[0].message.content.trim();
-                // sometimes the response text starts with the existingText, if that is
-                // true then we should trim it off before returning it.
-                if (responseText.startsWith(existingText)) {
-                    responseText = responseText.substr(existingText.length);
-                }
-                resolve(responseText);
-            });
-    });
+    if (!aiInternalProxy) { // use the internal proxy by passing it the fields directly
+        console.log('Construct prompt and directly send to AI');
+        // return a promise to a fetch to the mistral api
+        return new Promise((resolve) => {
+            // create the total prompt using the template, the prompt, and the existing text.
+            instruction = thePrompt.replace('{title}', title).replace('{context}', context).replace('{text}', existingText.trim() + " ... ");
+            messageContent = promptTemplate.replace('{prompt}', instruction)
+            // console.log('messageContent is' + messageContent);
+            const data = {
+                model: aimodel,
+                messages: [
+                    {
+                        role: 'user',
+                        content: messageContent
+                    }
+                ],
+                temperature: 0.6,
+                max_tokens: 100,
+                top_p: 0.9,
+                // top_k: 50,
+                stream: false,
+                // unsafe_prompt: false,
+                random_seed: null
+            };
+            // Make the API request
+            return fetch(mistralApiUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${myApiKey}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+                .then(res => res.json())
+                .then(data => {
+                    thinkingIndicator('hide');
+                    responseText = data.choices[0].message.content.trim();
+                    // sometimes the response text starts with the existingText, if that is
+                    // true then we should trim it off before returning it.
+                    if (responseText.startsWith(existingText.trim())) {
+                        responseText = responseText.substr(existingText.trim().length);
+                    }
+                    resolve(responseText);
+                });
+        });
+    }
+    else 
+    {
+        console.log('Passing title, context, and existing text to the internal proxy');
+    // use the WPproxy, pass the title, context, and existing text to the proxy
+    // and get the response from the proxy
+    
+        return new Promise((resolve) => {
+        thinkingIndicator('show');
+        // pass the text fields directly to our internal wp proxy
+            return fetch('/index.php?rest_route=/autosuggestai/v1/getsuggestion', {
+                method: 'POST',
+                headers: {
+                    'X-WP-Nonce': autosuggestai.api_nonce
+                },
+                body: JSON.stringify({
+                    title: title,
+                    context: context,
+                    existingText: existingText
+                })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    thinkingIndicator('hide');
+                    responseText = data['suggestion'];
+                    // check if the responseText starts with the existingText, and if so trim it off
+                    if (responseText.startsWith(existingText.trim())) {
+                        responseText = responseText.substr(existingText.trim().length);
+                    }
+                    resolve(responseText);
+                })
+                .catch(err => {
+                    thinkingIndicator('hide');
+                    console.error(err);
+                });
+        });
+    }
 }
+
 
 
 
@@ -190,11 +281,17 @@ let suggestionState = 'active';
 let suggestionText;
 
 
+/**
+ * Moves the cursor position in the block editor.
+ *
+ * @param {number} cursorPosition - The new cursor position.
+ * @returns {void}
+ */
 function moveCursorTo(cursorPosition) {
     console.log("Move cursor to " + cursorPosition)
     wp.data.dispatch('core/block-editor').selectionChange(wp.data.select('core/block-editor').getSelectedBlock().clientId, "content", cursorPosition, cursorPosition);
 }
-    
+
 
 
 
@@ -221,7 +318,7 @@ function insertTextIntoCurrentBlock(text) {
     // Split text into parts based on line breaks
     const parts = text.split(/\r?\n/);
     const firstPart = parts[0];
-    
+
     // Combine current content with the new text
     const newContent = `${oldContent}${firstPart}`;
 
@@ -236,11 +333,11 @@ function insertTextIntoCurrentBlock(text) {
     if (selectedBlock.name === 'core/paragraph') {
         cursorPosition = newContent.length + 1; // Adjust cursor position to exclude the space
         wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", cursorPosition, cursorPosition);
-        
+
     } else {
         console.warn('Cursor adjustment is not supported for this block type.');
     }
-    
+
     // if and only if there are more parts of text
     if (parts.length > 1) {
 
@@ -260,6 +357,8 @@ function insertTextIntoCurrentBlock(text) {
         // Move cursor to end of last inserted block
         const lastBlockId = prevBlockId;
         wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", parts[parts.length - 1].length, parts[parts.length - 1].length);
+        // moveCursorToEnd();
+
     }
 }
 
@@ -272,7 +371,7 @@ const tabHandler = (event) => {
             // replace the current block with the suggestion
             // and set the state to active
             suggestionState = 'active';
-            
+
             insertTextIntoCurrentBlock(suggestionText);
 
         }
@@ -318,10 +417,10 @@ function getcurrentElementFromCanvas() {
 
 async function moveCursorToEnd() {
     // Wait for the selection change to complete
-    await await wp.data.dispatch('core/block-editor').selectionChange(wp.data.select('core/block-editor').getSelectedBlock().clientId, "content", wp.data.select('core/block-editor').getSelectedBlock().attributes.content.length,  wp.data.select('core/block-editor').getSelectedBlock().attributes.content.length);
-  
+    await await wp.data.dispatch('core/block-editor').selectionChange(wp.data.select('core/block-editor').getSelectedBlock().clientId, "content", wp.data.select('core/block-editor').getSelectedBlock().attributes.content.length, wp.data.select('core/block-editor').getSelectedBlock().attributes.content.length);
 
-  }
+
+}
 
 
 function handleSuggestion(text) {
@@ -334,7 +433,7 @@ function handleSuggestion(text) {
     suggestionText = text
     suggestionState = 'inactive-got-suggestion'
 
-    
+
     // should show the suggestion now and then 
     // add a keyboard handler to look basically any key
     // and it will do tab or non tab
@@ -359,24 +458,23 @@ function handleSuggestion(text) {
 
     currentBlockId = wp.data.select('core/block-editor').getSelectedBlock().clientId;
     insertTextIntoCurrentBlock("<i>" + suggestionText + "</i>")
-    
-    setTimeout(function() {
+
+    setTimeout(function () {
         moveCursorTo(oldContent.length);
-      }, 2000);
+    }, 1000);
     // wait for a tab
     document.addEventListener('keydown', tabHandler);
-    
-}  
+
+}
 
 function idleNow() {
-    
+
     console.log("idle")
     idle = true;
     if (suggestionState === 'active') {
-        suggestionState = 'inactive-before-suggestion' 
+        suggestionState = 'inactive-before-suggestion'
     }
-    else
-    { console.log("idle but not active, so must be inside the suggestion process")}
+    else { console.log("idle but not active, so must be inside the suggestion process") }
     console.log("suggestionState = " + suggestionState)
 
     if (suggestionState = 'inactive-before-suggestion') { // the user has stopped typing, and we haven't got a suggestion yet
@@ -401,83 +499,49 @@ function idleNow() {
 
         // check if the last character of the current block is a whitespace, if it is not then
         // exit as we only suggest when the user is pausing after a word. 
-        if (currentBlock.attributes.content.length > 0 && currentBlock.attributes.content[currentBlock.attributes.content.length - 1] !== " ") {
-
+        if (currentBlock.name != 'core/paragraph') {
+            console.log ("Selected block is not a paragraph block.");
+            return;
+        }
+        // only proceed if we are either on a block with a space at the end, or on an empty block
+        currentblockText = getBlockText(currentBlock)
+        if (currentblockText.length > 0 && currentblockText[currentblockText.length - 1] !== " ") {
             console.log("Last character is not a whitespace, so we are not suggesting")
             return;
         }
-
-                // get the text from the top of the post to the current block
-        let contextText = '';
-        const currentBlockClientId = wp.data.select('core/block-editor').getSelectedBlock().clientId;
-        let reachedCurrentBlock = false;
-        const blocks = wp.data.select('core/block-editor').getBlocks();
-        blocks.forEach(block => {
-            if (block.clientId === currentBlockClientId) {
-                reachedCurrentBlock = true;
-                return; // Using return here to exit the loop is better than break, as return will exit the current function entirely, while break will only exit the loop but continue executing the rest of the function
-            }
-            if (!reachedCurrentBlock) {
-                if (block.innerBlocks.length > 0) {
-                    block.innerBlocks.forEach(innerBlock => {
-                        if (innerBlock.name === 'core/list-item') {
-                            contextText += '* ' + innerBlock.attributes.content + '\n';
-                        } else {
-                            contextText += innerBlock.attributes.content + '\n';
-                        }
-                    });
-                } else if (block.name === 'core/heading') {
-                    contextText += '# ' + block.attributes.content + '\n\n';
-                } else if (block.name === 'core/image') {
-                    let imageText = '';
-                    if (block.attributes.alt) {
-                        imageText += block.attributes.alt;
-                    }
-                    if (block.attributes.caption) {
-                        imageText += ' ' + block.attributes.caption;
-                    }
-                    contextText += imageText + '\n';
-                } else if (block.name === 'maxbuttons/maxbuttons-block') {
-                    contextText += block.attributes.text + '\n';
-                } else if (block.name === 'core/quote') {
-                    contextText += '> ' + block.attributes.content + '\n';
-                } else if (block.name !== 'core/post-title') {
-                    contextText += block.attributes.content + '\n';
-                }
-            }
-        });
-
-
-
+    
+        // get the text from the top of the post to the current block
+        let contextText = getContextText();
 
         // console.log("contextText: " + contextText)
 
-        let currentBlockText = currentBlock.attributes.content
-        // let precedingBlockText = ''
-        
-        // const currentBlockIndexNumber = wp.data.select('core/block-editor').getBlocks().indexOf(currentBlock)
-        // console.log('currentBlockIndexNumber:' + currentBlockIndexNumber)
-
-        // // if the currentBlockText is blank, then go get the preceding block text instead, even if it is not a paragraph
-        // if (currentBlockText.length === 0) {
-        //     if (currentBlockIndexNumber >= 1) {
-        //     currentBlockText = wp.data.select('core/block-editor').getBlocks()[currentBlockIndexNumber - 1].attributes.content // actually the previous block
-        //     }
-        //     if (currentBlockIndexNumber >= 2) {
-        //         precedingBlockText = wp.data.select('core/block-editor').getBlocks()[currentBlockIndexNumber - 2].attributes.content
-        //     }
-        // } else {
-        //     if (currentBlockIndexNumber >= 1) {
-        //         precedingBlockText = wp.data.select('core/block-editor').getBlocks()[currentBlockIndexNumber - 1].attributes.content
-        //     }
-        // }
+        let currentBlockText = getBlockText(currentBlock)
+  
         const title = wp.data.select("core/editor").getEditedPostAttribute('title');
 
         const suggestionTextPromise = getSuggestionPromise(title, contextText, currentBlockText)
-        
+
         suggestionState = 'inactive-asked-for-suggestion'
         suggestionTextPromise.then(handleSuggestion)
     }
+}
+ 
+// Gets all the text before, and not including, the current block
+function getContextText() {
+    let contextText = '';
+    const currentBlockClientId = wp.data.select('core/block-editor').getSelectedBlock().clientId;
+    let reachedCurrentBlock = false;
+    const blocks = wp.data.select('core/block-editor').getBlocks();
+    blocks.forEach(block => {
+        if (block.clientId === currentBlockClientId) {
+            reachedCurrentBlock = true;
+            return; // Using return here to exit the loop is better than break, as return will exit the current function entirely, while break will only exit the loop but continue executing the rest of the function
+        }
+        if (!reachedCurrentBlock) {
+            contextText += getBlockText(block) + '\n\n'
+        }
+    });
+    return contextText;
 }
 
 // set the idle reset function, but if this is the first time this document has loaded
@@ -492,15 +556,15 @@ function resetIdle() {
         // nearestPTag.innerHTML = originalNearestPTag.innerHTML;
         console.log('should give up on suggestion')
         // take the current block and set it to the previous text, then move the cursor to the end
-        
+
         wp.data.dispatch('core/block-editor').updateBlockAttributes(wp.data.select('core/block-editor').getSelectedBlock().clientId, {
             content: oldContent,
         });
 
         cursorPosition = oldContent.length + 1; // Adjust cursor position to exclude the space
-        wp.data.dispatch('core/block-editor').selectionChange( wp.data.select('core/block-editor').getSelectedBlock().clientId, "content", cursorPosition, cursorPosition);
+        wp.data.dispatch('core/block-editor').selectionChange(wp.data.select('core/block-editor').getSelectedBlock().clientId, "content", cursorPosition, cursorPosition);
 
-    
+
     }
 
 
