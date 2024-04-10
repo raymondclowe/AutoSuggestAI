@@ -365,7 +365,9 @@ function insertTextIntoCurrentBlock(text) {
 
         // Move cursor to end of last inserted block
         const lastBlockId = prevBlockId;
-        wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", parts[parts.length - 1].length, parts[parts.length - 1].length);
+        setTimeout(() => {
+            wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", parts[parts.length - 1].length, parts[parts.length - 1].length);
+        }, 500);
         // moveCursorToEnd();
 
     }
