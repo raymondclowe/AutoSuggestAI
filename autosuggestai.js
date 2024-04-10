@@ -487,6 +487,19 @@ function handleSuggestion(text) {
     });
 
     // Existing event listener for tab key
+    // Accept suggestion on clicking the grey text and abandon it on clicking elsewhere
+    document.addEventListener('mousedown', function(event) {
+        const suggestionElement = document.querySelector('.suggestion-grey-text'); // Assuming this is the class for grey text
+        if (suggestionElement && suggestionElement.contains(event.target)) {
+            // User clicked on the grey suggested text, accept the suggestion
+            insertTextIntoCurrentBlock(suggestionText);
+        } else if (suggestionState === 'inactive-got-suggestion') {
+            // User clicked outside the grey suggested text, abandon the suggestion
+            handleAbandonSuggestion();
+        }
+    });
+
+    // Existing event listener for tab key
     document.addEventListener('keydown', tabHandler);
 
 }
