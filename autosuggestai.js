@@ -620,3 +620,22 @@ window.addEventListener('blur', resetIdle);
 
 
 resetIdle();
+// Stub function for handling click inside grey text
+function handleClickInsideGreyText() {
+    console.log('Click was inside grey text');
+}
+
+// Stub function for handling click outside grey text
+function handleClickOutsideGreyText() {
+    console.log('Click was outside grey text');
+}
+
+// Add mousedown event listener for the entire document
+document.addEventListener('mousedown', function(event) {
+    const greyTextElement = document.querySelector('.autosuggestai-grey-text');
+    if (greyTextElement && greyTextElement.contains(event.target)) {
+        handleClickInsideGreyText();
+    } else {
+        handleClickOutsideGreyText();
+    }
+});
