@@ -355,11 +355,13 @@ function insertTextIntoCurrentBlock(text) {
         // Insert remaining parts as new blocks after the current block
         let prevBlockId = selectedBlock.clientId;
         for (let i = 1; i < parts.length; i++) {
-            const newBlock = wp.blocks.createBlock('core/paragraph', {
-                content: parts[i]
-            });
-            wp.data.dispatch('core/block-editor').insertBlock(newBlock, currentBlockIndex + i);
-            prevBlockId = newBlock.clientId;
+            if (parts[i].trim() !== '') {
+                const newBlock = wp.blocks.createBlock('core/paragraph', {
+                    content: parts[i]
+                });
+                wp.data.dispatch('core/block-editor').insertBlock(newBlock, currentBlockIndex + i);
+                prevBlockId = newBlock.clientId;
+            }
         }
 
         // Move cursor to end of last inserted block
