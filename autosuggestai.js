@@ -36,6 +36,7 @@ let nearestPTag;
 let originalNearestPTag; // this is a clone of the tag with the suggestion, prior to the suggestion being added.
 let oldContent;
 let thinkingDiv;
+let suggestedBlockIDs = [];
 
 // different kinds of blocks and different wp versions may expose their text content in 
 // different ways. this helper function just gets any text from any block, regardless of the type
@@ -305,75 +306,105 @@ function moveCursorTo(cursorPosition) {
 
 
 function insertTextIntoCurrentBlock(text) {
-    // Get the selected block
-    const selectedBlock = wp.data.select('core/block-editor').getSelectedBlock();
+    if (suggestionState == 'inactive-got-suggestion') { // suggestion italic mode
+        console.log("Inserting text in suggestion mode")
+        suggestedBlockIDs = [];
 
-    if (!selectedBlock) {
-        console.error('No block selected!');
-        return;
-    }
+        // Get the selected block
+        const selectedBlock = wp.data.select('core/block-editor').getSelectedBlock();
 
-    // Check if the block is a paragraph block. Adapt this check for other block types.
-    if (selectedBlock.name !== 'core/paragraph') {
-        console.error('Selected block is not a paragraph block.');
-        return;
-    }
-
-    // Get current content from block attributes
-    const currentAttributes = selectedBlock.attributes;
-    const currentContent = currentAttributes.content;
-
-    // Split text into parts based on line breaks
-    const parts = text.split(/\r?\n/);
-    const firstPart = parts[0];
-
-    // Combine current content with the new text
-    const newContent = `${oldContent}${firstPart}`;
-
-    // Update the block's content with the first part
-    wp.data.dispatch('core/block-editor').updateBlockAttributes(selectedBlock.clientId, {
-        content: newContent,
-    });
-
-
-    // Place the selection at the end of the inserted text
-    const blockClientId = selectedBlock.clientId;
-    // if (selectedBlock.name === 'core/paragraph') {
-    //     cursorPosition = newContent.length + 1; // Adjust cursor position to exclude the space
-    //     wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", cursorPosition, cursorPosition);
-
-    // } else {
-    //     console.warn('Cursor adjustment is not supported for this block type.');
-    // }
-
-    // if and only if there are more parts of text
-    if (parts.length > 1) {
-
-        // Get the position of the current block
-        const currentBlockIndex = wp.data.select('core/block-editor').getBlockIndex(selectedBlock.clientId);
-
-        // Insert remaining parts as new blocks after the current block
-        let prevBlockId = selectedBlock.clientId;
-        for (let i = 1; i < parts.length; i++) {
-            if (parts[i].trim() !== '') {
-                const newBlock = wp.blocks.createBlock('core/paragraph', {
-                    content: parts[i]
-                });
-                wp.data.dispatch('core/block-editor').insertBlock(newBlock, currentBlockIndex + i);
-                prevBlockId = newBlock.clientId;
-            }
+        if (!selectedBlock) {
+            console.error('No block selected!');
+            return;
         }
 
-        // Move cursor to end of last inserted block
-        const lastBlockId = prevBlockId;
-        wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", parts[parts.length - 1].length, parts[parts.length - 1].length);
-        // moveCursorToEnd();
+        // Check if the block is a paragraph block. Adapt this check for other block types.
+        if (selectedBlock.name !== 'core/paragraph') {
+            console.error('Selected block is not a paragraph block.');
+            return;
+        }
 
+        // Get current content from block attributes
+        const currentAttributes = selectedBlock.attributes;
+        const currentContent = currentAttributes.content;
+
+        // Split text into parts based on line breaks
+        const parts = text.split(/\r?\n/);
+        const firstPart = parts[0].trim();
+
+        // Combine current content with the new text
+        const newContent = `${oldContent}<i>${firstPart}</i>`;
+
+        // Update the block's content with the first part
+        wp.data.dispatch('core/block-editor').updateBlockAttributes(selectedBlock.clientId, {
+            content: newContent,
+        });
+
+
+        // Place the selection at the end of the inserted text
+        const blockClientId = selectedBlock.clientId;
+        suggestedBlockIDs.push(blockClientId);
+        // if (selectedBlock.name === 'core/paragraph') {
+        //     cursorPosition = newContent.length + 1; // Adjust cursor position to exclude the space
+        //     wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", cursorPosition, cursorPosition);
+
+        // } else {
+        //     console.warn('Cursor adjustment is not supported for this block type.');
+        // }
+
+        // if and only if there are more parts of text
+        if (parts.length > 1) {
+
+            // Get the position of the current block
+            const currentBlockIndex = wp.data.select('core/block-editor').getBlockIndex(selectedBlock.clientId);
+
+            // Insert remaining parts as new blocks after the current block
+            let prevBlockId = selectedBlock.clientId;
+            for (let i = 1; i < parts.length; i++) {
+                if (parts[i].trim() !== '') {
+                    const newBlock = wp.blocks.createBlock('core/paragraph', {
+                        content: "<i>" + parts[i].trim() + "</i>"
+                    });
+                    wp.data.dispatch('core/block-editor').insertBlock(newBlock, currentBlockIndex + i);
+                    prevBlockId = newBlock.clientId;
+                    suggestedBlockIDs.push(prevBlockId);
+                }
+            }
+
+            // Move cursor to end of last inserted block
+            // const lastBlockId = prevBlockId;
+            // wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", parts[parts.length - 1].length, parts[parts.length - 1].length);
+            // moveCursorToEnd();
+
+            // Move cursor to original block and end of the original text
+            setTimeout(wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", oldContent.length, oldContent.length), 1000);
+        }
+    } else {
+        // user accepted the suggestion
+        console.log("Inserting text in active mode")
+
+        // Remove italic tags from suggested blocks
+        suggestedBlockIDs.forEach(blockId => {
+            const block = wp.data.select('core/block-editor').getBlock(blockId);
+            if (block) {
+                const currentAttributes = block.attributes;
+                const currentContent = currentAttributes.content;
+                const newContent = currentContent.replace(/<i>/g, '').replace(/<\/i>/g, '');
+                wp.data.dispatch('core/block-editor').updateBlockAttributes(blockId, {
+                    content: newContent,
+                });
+            }
+        });
+
+        // Move cursor to the end of the last block
+        const lastBlockId = suggestedBlockIDs[suggestedBlockIDs.length - 1];
+        const lastBlockLength = wp.data.select('core/block-editor').getBlock(lastBlockId).attributes.content.length;
+        setTimeout(wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", lastBlockLength, lastBlockLength), 1000);
     }
 }
 
 const tabHandler = (event) => {
-    if (suggestionState = 'inactive-got-suggestion') {
+    if (suggestionState === 'inactive-got-suggestion') {
         if (event.key === 'Tab') {
             // do not do the default tab behaviour
             event.preventDefault();
@@ -383,7 +414,6 @@ const tabHandler = (event) => {
             suggestionState = 'active';
 
             insertTextIntoCurrentBlock(suggestionText);
-            setTimeout(moveCursorTo(oldContent.length + suggestionText.length), 1000);
         }
     }
     document.removeEventListener('keydown', tabHandler);
@@ -467,7 +497,7 @@ function handleSuggestion(text) {
     oldContent = wp.data.select('core/block-editor').getSelectedBlock().attributes.content
 
     currentBlockId = wp.data.select('core/block-editor').getSelectedBlock().clientId;
-    insertTextIntoCurrentBlock("<i>" + suggestionText + "</i>")
+    insertTextIntoCurrentBlock(suggestionText)
 
     setTimeout(function () {
         moveCursorTo(oldContent.length);
