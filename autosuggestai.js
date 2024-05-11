@@ -139,7 +139,7 @@ setTimeout(() => {
         aiInternalProxy = data.aiInternalProxy === "1";
         aimodel = data.aimodel;
 
-        console.log('API rest URL is '+ airesturl);
+        console.log('API rest URL is ' + airesturl);
         console.log('API key is ' + aiApiKey);
         console.log('AI Internal Proxy is' + aiInternalProxy);
         console.log('AI Delay is ' + AIDelay);
@@ -242,44 +242,43 @@ function getSuggestionPromise(title, context, existingText) {
                 })
         }
         );
-    }                   
-    else
-        {
-            console.log('Passing title, context, and existing text to the internal proxy');
-            // use the WPproxy, pass the title, context, and existing text to the proxy
-            // and get the response from the proxy
-
-            return new Promise((resolve) => {
-                thinkingIndicator('show');
-                // pass the text fields directly to our internal wp proxy
-                return fetch('/index.php?rest_route=/autosuggestai/v1/getsuggestion', {
-                    method: 'POST',
-                    headers: {
-                        'X-WP-Nonce': autosuggestai.api_nonce
-                    },
-                    body: JSON.stringify({
-                        title: title,
-                        context: context,
-                        existingText: existingText
-                    })
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        thinkingIndicator('hide');
-                        responseText = data['suggestion'];
-                        // check if the responseText starts with the existingText, and if so trim it off
-                        if (responseText.startsWith(existingText.trim())) {
-                            responseText = responseText.substr(existingText.trim().length);
-                        }
-                        resolve(responseText);
-                    })
-                    .catch(err => {
-                        thinkingIndicator('hide');
-                        console.error(err);
-                    });
-            });
-        }
     }
+    else {
+        console.log('Passing title, context, and existing text to the internal proxy');
+        // use the WPproxy, pass the title, context, and existing text to the proxy
+        // and get the response from the proxy
+
+        return new Promise((resolve) => {
+            thinkingIndicator('show');
+            // pass the text fields directly to our internal wp proxy
+            return fetch('/index.php?rest_route=/autosuggestai/v1/getsuggestion', {
+                method: 'POST',
+                headers: {
+                    'X-WP-Nonce': autosuggestai.api_nonce
+                },
+                body: JSON.stringify({
+                    title: title,
+                    context: context,
+                    existingText: existingText
+                })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    thinkingIndicator('hide');
+                    responseText = data['suggestion'];
+                    // check if the responseText starts with the existingText, and if so trim it off
+                    if (responseText.startsWith(existingText.trim())) {
+                        responseText = responseText.substr(existingText.trim().length);
+                    }
+                    resolve(responseText);
+                })
+                .catch(err => {
+                    thinkingIndicator('hide');
+                    console.error(err);
+                });
+        });
+    }
+}
 
 
 
@@ -339,13 +338,13 @@ function insertTextIntoCurrentBlock(text) {
 
     // Place the selection at the end of the inserted text
     const blockClientId = selectedBlock.clientId;
-    if (selectedBlock.name === 'core/paragraph') {
-        cursorPosition = newContent.length + 1; // Adjust cursor position to exclude the space
-        wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", cursorPosition, cursorPosition);
+    // if (selectedBlock.name === 'core/paragraph') {
+    //     cursorPosition = newContent.length + 1; // Adjust cursor position to exclude the space
+    //     wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", cursorPosition, cursorPosition);
 
-    } else {
-        console.warn('Cursor adjustment is not supported for this block type.');
-    }
+    // } else {
+    //     console.warn('Cursor adjustment is not supported for this block type.');
+    // }
 
     // if and only if there are more parts of text
     if (parts.length > 1) {
@@ -382,7 +381,7 @@ const tabHandler = (event) => {
             suggestionState = 'active';
 
             insertTextIntoCurrentBlock(suggestionText);
-
+            setTimeout(moveCursorTo(oldContent.length + suggestionText.length), 1000);
         }
     }
     document.removeEventListener('keydown', tabHandler);
@@ -509,7 +508,7 @@ function idleNow() {
         // check if the last character of the current block is a whitespace, if it is not then
         // exit as we only suggest when the user is pausing after a word. 
         if (currentBlock.name != 'core/paragraph') {
-            console.log ("Selected block is not a paragraph block.");
+            console.log("Selected block is not a paragraph block.");
             return;
         }
         // only proceed if we are either on a block with a space at the end, or on an empty block
@@ -518,14 +517,14 @@ function idleNow() {
             console.log("Last character is not a whitespace, so we are not suggesting")
             return;
         }
-    
+
         // get the text from the top of the post to the current block
         let contextText = getContextText();
 
         // console.log("contextText: " + contextText)
 
         let currentBlockText = getBlockText(currentBlock)
-  
+
         const title = wp.data.select("core/editor").getEditedPostAttribute('title');
 
         const suggestionTextPromise = getSuggestionPromise(title, contextText, currentBlockText)
@@ -534,7 +533,7 @@ function idleNow() {
         suggestionTextPromise.then(handleSuggestion)
     }
 }
- 
+
 // Gets all the text before, and not including, the current block
 function getContextText() {
     let contextText = '';
