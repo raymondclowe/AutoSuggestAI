@@ -36,6 +36,7 @@ let nearestPTag;
 let originalNearestPTag; // this is a clone of the tag with the suggestion, prior to the suggestion being added.
 let oldContent;
 let thinkingDiv;
+let suggestedBlockIDs = [];
 
 // different kinds of blocks and different wp versions may expose their text content in 
 // different ways. this helper function just gets any text from any block, regardless of the type
@@ -139,7 +140,7 @@ setTimeout(() => {
         aiInternalProxy = data.aiInternalProxy === "1";
         aimodel = data.aimodel;
 
-        console.log('API rest URL is '+ airesturl);
+        console.log('API rest URL is ' + airesturl);
         console.log('API key is ' + aiApiKey);
         console.log('AI Internal Proxy is' + aiInternalProxy);
         console.log('AI Delay is ' + AIDelay);
@@ -242,44 +243,43 @@ function getSuggestionPromise(title, context, existingText) {
                 })
         }
         );
-    }                   
-    else
-        {
-            console.log('Passing title, context, and existing text to the internal proxy');
-            // use the WPproxy, pass the title, context, and existing text to the proxy
-            // and get the response from the proxy
-
-            return new Promise((resolve) => {
-                thinkingIndicator('show');
-                // pass the text fields directly to our internal wp proxy
-                return fetch('/index.php?rest_route=/autosuggestai/v1/getsuggestion', {
-                    method: 'POST',
-                    headers: {
-                        'X-WP-Nonce': autosuggestai.api_nonce
-                    },
-                    body: JSON.stringify({
-                        title: title,
-                        context: context,
-                        existingText: existingText
-                    })
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        thinkingIndicator('hide');
-                        responseText = data['suggestion'];
-                        // check if the responseText starts with the existingText, and if so trim it off
-                        if (responseText.startsWith(existingText.trim())) {
-                            responseText = responseText.substr(existingText.trim().length);
-                        }
-                        resolve(responseText);
-                    })
-                    .catch(err => {
-                        thinkingIndicator('hide');
-                        console.error(err);
-                    });
-            });
-        }
     }
+    else {
+        console.log('Passing title, context, and existing text to the internal proxy');
+        // use the WPproxy, pass the title, context, and existing text to the proxy
+        // and get the response from the proxy
+
+        return new Promise((resolve) => {
+            thinkingIndicator('show');
+            // pass the text fields directly to our internal wp proxy
+            return fetch('/index.php?rest_route=/autosuggestai/v1/getsuggestion', {
+                method: 'POST',
+                headers: {
+                    'X-WP-Nonce': autosuggestai.api_nonce
+                },
+                body: JSON.stringify({
+                    title: title,
+                    context: context,
+                    existingText: existingText
+                })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    thinkingIndicator('hide');
+                    responseText = data['suggestion'];
+                    // check if the responseText starts with the existingText, and if so trim it off
+                    if (responseText.startsWith(existingText.trim())) {
+                        responseText = responseText.substr(existingText.trim().length);
+                    }
+                    resolve(responseText);
+                })
+                .catch(err => {
+                    thinkingIndicator('hide');
+                    console.error(err);
+                });
+        });
+    }
+}
 
 
 
@@ -306,73 +306,105 @@ function moveCursorTo(cursorPosition) {
 
 
 function insertTextIntoCurrentBlock(text) {
-    // Get the selected block
-    const selectedBlock = wp.data.select('core/block-editor').getSelectedBlock();
+    if (suggestionState == 'inactive-got-suggestion') { // suggestion italic mode
+        console.log("Inserting text in suggestion mode")
+        suggestedBlockIDs = [];
 
-    if (!selectedBlock) {
-        console.error('No block selected!');
-        return;
-    }
+        // Get the selected block
+        const selectedBlock = wp.data.select('core/block-editor').getSelectedBlock();
 
-    // Check if the block is a paragraph block. Adapt this check for other block types.
-    if (selectedBlock.name !== 'core/paragraph') {
-        console.error('Selected block is not a paragraph block.');
-        return;
-    }
-
-    // Get current content from block attributes
-    const currentAttributes = selectedBlock.attributes;
-    const currentContent = currentAttributes.content;
-
-    // Split text into parts based on line breaks
-    const parts = text.split(/\r?\n/);
-    const firstPart = parts[0];
-
-    // Combine current content with the new text
-    const newContent = `${oldContent}${firstPart}`;
-
-    // Update the block's content with the first part
-    wp.data.dispatch('core/block-editor').updateBlockAttributes(selectedBlock.clientId, {
-        content: newContent,
-    });
-
-
-    // Place the selection at the end of the inserted text
-    const blockClientId = selectedBlock.clientId;
-    if (selectedBlock.name === 'core/paragraph') {
-        cursorPosition = newContent.length + 1; // Adjust cursor position to exclude the space
-        wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", cursorPosition, cursorPosition);
-
-    } else {
-        console.warn('Cursor adjustment is not supported for this block type.');
-    }
-
-    // if and only if there are more parts of text
-    if (parts.length > 1) {
-
-        // Get the position of the current block
-        const currentBlockIndex = wp.data.select('core/block-editor').getBlockIndex(selectedBlock.clientId);
-
-        // Insert remaining parts as new blocks after the current block
-        let prevBlockId = selectedBlock.clientId;
-        for (let i = 1; i < parts.length; i++) {
-            const newBlock = wp.blocks.createBlock('core/paragraph', {
-                content: parts[i]
-            });
-            wp.data.dispatch('core/block-editor').insertBlock(newBlock, currentBlockIndex + i);
-            prevBlockId = newBlock.clientId;
+        if (!selectedBlock) {
+            console.error('No block selected!');
+            return;
         }
 
-        // Move cursor to end of last inserted block
-        const lastBlockId = prevBlockId;
-        wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", parts[parts.length - 1].length, parts[parts.length - 1].length);
-        // moveCursorToEnd();
+        // Check if the block is a paragraph block. Adapt this check for other block types.
+        if (selectedBlock.name !== 'core/paragraph') {
+            console.error('Selected block is not a paragraph block.');
+            return;
+        }
 
+        // Get current content from block attributes
+        const currentAttributes = selectedBlock.attributes;
+        const currentContent = currentAttributes.content;
+
+        // Split text into parts based on line breaks
+        const parts = text.split(/\r?\n/);
+        const firstPart = parts[0].trim();
+
+        // Combine current content with the new text
+        const newContent = `${oldContent}<i>${firstPart}</i>`;
+
+        // Update the block's content with the first part
+        wp.data.dispatch('core/block-editor').updateBlockAttributes(selectedBlock.clientId, {
+            content: newContent,
+        });
+
+
+        // Place the selection at the end of the inserted text
+        const blockClientId = selectedBlock.clientId;
+        suggestedBlockIDs.push(blockClientId);
+        // if (selectedBlock.name === 'core/paragraph') {
+        //     cursorPosition = newContent.length + 1; // Adjust cursor position to exclude the space
+        //     wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", cursorPosition, cursorPosition);
+
+        // } else {
+        //     console.warn('Cursor adjustment is not supported for this block type.');
+        // }
+
+        // if and only if there are more parts of text
+        if (parts.length > 1) {
+
+            // Get the position of the current block
+            const currentBlockIndex = wp.data.select('core/block-editor').getBlockIndex(selectedBlock.clientId);
+
+            // Insert remaining parts as new blocks after the current block
+            let prevBlockId = selectedBlock.clientId;
+            for (let i = 1; i < parts.length; i++) {
+                if (parts[i].trim() !== '') {
+                    const newBlock = wp.blocks.createBlock('core/paragraph', {
+                        content: "<i>" + parts[i].trim() + "</i>"
+                    });
+                    wp.data.dispatch('core/block-editor').insertBlock(newBlock, currentBlockIndex + i);
+                    prevBlockId = newBlock.clientId;
+                    suggestedBlockIDs.push(prevBlockId);
+                }
+            }
+
+            // Move cursor to end of last inserted block
+            // const lastBlockId = prevBlockId;
+            // wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", parts[parts.length - 1].length, parts[parts.length - 1].length);
+            // moveCursorToEnd();
+
+            // Move cursor to original block and end of the original text
+            setTimeout(wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", oldContent.length, oldContent.length), 1000);
+        }
+    } else {
+        // user accepted the suggestion
+        console.log("Inserting text in active mode")
+
+        // Remove italic tags from suggested blocks
+        suggestedBlockIDs.forEach(blockId => {
+            const block = wp.data.select('core/block-editor').getBlock(blockId);
+            if (block) {
+                const currentAttributes = block.attributes;
+                const currentContent = currentAttributes.content;
+                const newContent = currentContent.replace(/<i>/g, '').replace(/<\/i>/g, '');
+                wp.data.dispatch('core/block-editor').updateBlockAttributes(blockId, {
+                    content: newContent,
+                });
+            }
+        });
+
+        // Move cursor to the end of the last block
+        const lastBlockId = suggestedBlockIDs[suggestedBlockIDs.length - 1];
+        const lastBlockLength = wp.data.select('core/block-editor').getBlock(lastBlockId).attributes.content.length;
+        setTimeout(wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", lastBlockLength, lastBlockLength), 1000);
     }
 }
 
 const tabHandler = (event) => {
-    if (suggestionState = 'inactive-got-suggestion') {
+    if (suggestionState === 'inactive-got-suggestion') {
         if (event.key === 'Tab') {
             // do not do the default tab behaviour
             event.preventDefault();
@@ -382,7 +414,6 @@ const tabHandler = (event) => {
             suggestionState = 'active';
 
             insertTextIntoCurrentBlock(suggestionText);
-
         }
     }
     document.removeEventListener('keydown', tabHandler);
@@ -466,7 +497,7 @@ function handleSuggestion(text) {
     oldContent = wp.data.select('core/block-editor').getSelectedBlock().attributes.content
 
     currentBlockId = wp.data.select('core/block-editor').getSelectedBlock().clientId;
-    insertTextIntoCurrentBlock("<i>" + suggestionText + "</i>")
+    insertTextIntoCurrentBlock(suggestionText)
 
     setTimeout(function () {
         moveCursorTo(oldContent.length);
@@ -509,7 +540,7 @@ function idleNow() {
         // check if the last character of the current block is a whitespace, if it is not then
         // exit as we only suggest when the user is pausing after a word. 
         if (currentBlock.name != 'core/paragraph') {
-            console.log ("Selected block is not a paragraph block.");
+            console.log("Selected block is not a paragraph block.");
             return;
         }
         // only proceed if we are either on a block with a space at the end, or on an empty block
@@ -518,14 +549,14 @@ function idleNow() {
             console.log("Last character is not a whitespace, so we are not suggesting")
             return;
         }
-    
+
         // get the text from the top of the post to the current block
         let contextText = getContextText();
 
         // console.log("contextText: " + contextText)
 
         let currentBlockText = getBlockText(currentBlock)
-  
+
         const title = wp.data.select("core/editor").getEditedPostAttribute('title');
 
         const suggestionTextPromise = getSuggestionPromise(title, contextText, currentBlockText)
@@ -534,7 +565,7 @@ function idleNow() {
         suggestionTextPromise.then(handleSuggestion)
     }
 }
- 
+
 // Gets all the text before, and not including, the current block
 function getContextText() {
     let contextText = '';
