@@ -4,7 +4,7 @@ $errorLog = __DIR__ . '/error_log.txt';
  * Plugin Name: AutoSuggestAI
  * Plugin URI: https://github.com/raymondclowe/AutoSuggestAI
  * Description: Auto suggest text in the block editor using AI
- * Version: v2.4.0a
+ * Version: v2.4.2
  * Author: Raymond Lowe 
  * Author URI: https://github.com/raymondclowe/
  * Text Domain: AutoSuggestAI
@@ -131,6 +131,7 @@ function autosuggestai_airesturl_callback()
   echo '<div style="max-width: 500px; margin-top: 5px;"><i>';
   echo 'Note: This must be an OpenAI compatible endpoint, ';
   echo '<a href="#" onclick="document.getElementById(\'airesturl\').value = \'https://api.openai.com/v1/chat/completions\';">OpenAI</a>, ';
+  echo '<a href="#" onclick="document.getElementById(\'airesturl\').value = \'https://api.groq.com/openai/v1/chat/completions\';">GroqCloud</a> and ';
   echo '<a href="#" onclick="document.getElementById(\'airesturl\').value = \'https://openrouter.ai/api/v1/chat/completions\';">OpenRouter.AI</a> and ';
   echo '<a href="#" onclick="document.getElementById(\'airesturl\').value = \'https://api.mistral.ai/v1/chat/completions\';">Mistral.AI</a> known to work';
   echo '</i></div>';
@@ -144,6 +145,7 @@ function autosuggestai_aiapikey_callback()
   echo '<input type="text" id="aiapikey" name="aiapikey" value="' . esc_attr($value) . '" size="40" />';
   echo '<div style="max-width: 500px; margin-top: 5px;"><i>';
   echo 'Get your keys here: <a href="https://platform.openai.com/account/api-keys" target="_blank">OpenAI</a>, ';  
+  echo '<a href="https://console.groq.com/keys" target="_blank">GroqCloud</a>, ';
   echo '<a href="https://openrouter.ai/keys" target="_blank">OpenRouter.AI</a>, ';
   echo '<a href="https://console.mistral.ai/api-keys/" target="_blank">Mistral.</a> You will need to create and fund an account yourself.';
   echo '</i></div>';
@@ -170,12 +172,15 @@ function autosuggestai_aimodel_callback()
   echo '<div style="max-width: 500px; margin-top: 5px;">';
   echo '<i>Common models: ';
   echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'gpt-3.5-turbo\';">gpt-3.5-turbo</a>, ';
+  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'gpt-4o\';">gpt-4o</a>, ';
   echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'open-mistral-7b\';">open-mistral-7b</a>, ';
   echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'llama-2\';">llama-2</a>. ';
   echo '<p>For a full list, see each provider. </p>';
   echo '<ul>';
   echo '<li>Openrouter.ai: <a href="https://openrouter.ai/docs#models" target="_blank">https://openrouter.ai/docs#models</a> &#x2197;</li>';
   echo '<li>Mistral.ai: <a href="https://docs.mistral.ai/guides/model-selection/" target="_blank">https://docs.mistral.ai/guides/model-selection/</a> &#x2197;</li>';
+  echo '<li>GroqCloud: <a href="https://console.groq.com/models" target="_blank">https://console.groq.com/models</a> &#x2197;</li>';
+  
   echo '<li>OpenAI: <a href="https://platform.openai.com/docs/models/overview" target="_blank">https://platform.openai.com/docs/models/overview</a> &#x2197;</li>';
   echo '</ul>';
 
