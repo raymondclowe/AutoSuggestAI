@@ -2,11 +2,13 @@
 $errorLog = __DIR__ . '/error_log.txt';
 /**
  * Plugin Name: AutoSuggestAI
+ * Plugin URI: https://github.com/raymondclowe/AutoSuggestAI
  * Description: Auto suggest text in the block editor using AI
- * Version: v2.4.0
- * Author: Raymond Lowe
- * License: GPL2
- * URL: https://github.com/raymondclowe/AutoSuggestAI
+ * Version: v2.4.0a
+ * Author: Raymond Lowe 
+ * Author URI: https://github.com/raymondclowe/
+ * Text Domain: AutoSuggestAI
+ * License: GPL v2 or later
  */
 
 defined('ABSPATH') or die('No script kiddies please!');
