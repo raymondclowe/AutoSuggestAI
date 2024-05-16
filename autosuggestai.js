@@ -377,7 +377,7 @@ function insertTextIntoCurrentBlock(text) {
             // moveCursorToEnd();
 
             // Move cursor to original block and end of the original text
-            setTimeout(wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", oldContent.length, oldContent.length), 1000);
+            setTimeout(() => {wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", oldContent.length, oldContent.length)}, 1000);
         }
     } else {
         // user accepted the suggestion
@@ -399,7 +399,7 @@ function insertTextIntoCurrentBlock(text) {
         // Move cursor to the end of the last block
         const lastBlockId = suggestedBlockIDs[suggestedBlockIDs.length - 1];
         const lastBlockLength = wp.data.select('core/block-editor').getBlock(lastBlockId).attributes.content.length;
-        setTimeout(wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", lastBlockLength, lastBlockLength), 1000);
+        setTimeout(() => { wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", lastBlockLength, lastBlockLength) }, 1000);
     }
 }
 
