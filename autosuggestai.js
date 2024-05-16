@@ -457,7 +457,7 @@ function getcurrentElementFromCanvas() {
 
 async function moveCursorToEnd() {
     // Wait for the selection change to complete
-    await await wp.data.dispatch('core/block-editor').selectionChange(wp.data.select('core/block-editor').getSelectedBlock().clientId, "content", wp.data.select('core/block-editor').getSelectedBlock().attributes.content.length, wp.data.select('core/block-editor').getSelectedBlock().attributes.content.length);
+    await wp.data.dispatch('core/block-editor').selectionChange(wp.data.select('core/block-editor').getSelectedBlock().clientId, "content", wp.data.select('core/block-editor').getSelectedBlock().attributes.content.length, wp.data.select('core/block-editor').getSelectedBlock().attributes.content.length);
 
 
 }
