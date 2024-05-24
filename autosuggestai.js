@@ -1,4 +1,4 @@
-const Version = "v2.4.2";
+const Version = "v2.4.3";
 
 console.log(Version)
 
@@ -36,6 +36,7 @@ let nearestPTag;
 let originalNearestPTag; // this is a clone of the tag with the suggestion, prior to the suggestion being added.
 let oldContent;
 let thinkingDiv;
+let actionBox
 let suggestedBlockIDs = [];
 
 // different kinds of blocks and different wp versions may expose their text content in 
@@ -122,6 +123,11 @@ function thinkingIndicator(action) {
     }
 }
 
+function suggestionAction() {
+    // show the action box
+    console.log("Showing action box")
+    actionBox.style.display = 'block';
+}
 
 
 setTimeout(() => {
@@ -307,6 +313,9 @@ function moveCursorTo(cursorPosition) {
 
 function insertTextIntoCurrentBlock(text) {
     if (suggestionState == 'inactive-got-suggestion') { // suggestion italic mode
+        // Show the action box
+        suggestionAction();
+
         console.log("Inserting text in suggestion mode")
         suggestedBlockIDs = [];
 
@@ -377,7 +386,8 @@ function insertTextIntoCurrentBlock(text) {
             // moveCursorToEnd();
 
             // Move cursor to original block and end of the original text
-            setTimeout(() => {wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", oldContent.length, oldContent.length)}, 1000);
+            setTimeout(() => { wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", oldContent.length, oldContent.length) }, 1000);
+
         }
     } else {
         // user accepted the suggestion
@@ -587,7 +597,13 @@ function getContextText() {
 // set the idle reset function, but if this is the first time this document has loaded
 // then set the delay to double.
 
-function resetIdle() {
+function resetIdle(event) {
+    // check if it is a button that was clicked
+    console.log("Event:" + event.target.tagName)
+    if (event && event.target.tagName === 'I') {
+        return;
+    }
+
     clearTimeout(idleTimeout);
     idle = false;
     console.log("Start reset idle")
@@ -621,5 +637,54 @@ window.addEventListener('mousedown', resetIdle);
 window.addEventListener('click', resetIdle);
 window.addEventListener('blur', resetIdle);
 
+// inject font awesome into head
+const link = document.createElement('link');
+link.rel = 'stylesheet';
+link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css';
+document.head.appendChild(link);
+
+// Creating action box
+console.log("Creating action box")
+actionBox = document.createElement('div');
+actionBox.id = 'actionBox';
+actionBox.style.backgroundColor = 'white';
+actionBox.style.border = '1px solid black';
+actionBox.style.padding = '10px';
+actionBox.style.borderRadius = '10px';
+
+// create the accept and reject buttons
+let acceptButton = document.createElement('button');
+acceptButton.id = 'acceptButton';
+acceptButton.innerHTML = '<i class="fas fa-check" style="color: green;"></i>';
+acceptButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    suggestionState = 'active';
+    insertTextIntoCurrentBlock();
+    actionBox.style.display = 'none';
+});
+
+let rejectButton = document.createElement('button');
+rejectButton.id = 'rejectButton';
+rejectButton.innerHTML = '<i class="fas fa-times" style="color: red;"></i>';
+rejectButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    suggestionState = 'inactive-got-suggestion';
+    resetIdle();
+    actionBox.style.display = 'none';
+});
+
+// append the buttons to the action box
+actionBox.appendChild(acceptButton);
+actionBox.appendChild(rejectButton);
+
+// position the action box
+actionBox.style.position = 'fixed';
+actionBox.style.bottom = '0';
+actionBox.style.left = '20%';
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.body.appendChild(actionBox);
+    actionBox.style.display = 'none';
+})
 
 resetIdle();
