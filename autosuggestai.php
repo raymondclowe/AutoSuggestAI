@@ -4,7 +4,7 @@ $errorLog = __DIR__ . '/error_log.txt';
  * Plugin Name: AutoSuggestAI
  * Plugin URI: https://github.com/raymondclowe/AutoSuggestAI
  * Description: Auto suggest text in the block editor using AI
- * Version: v2.4.2
+ * Version: v2.4.3
  * Author: Raymond Lowe 
  * Author URI: https://github.com/raymondclowe/
  * Text Domain: AutoSuggestAI
@@ -27,7 +27,7 @@ ini_set('error_log', $errorLog);
 
 function autosuggestai_enqueue_scripts()
 {
-  wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.4.0');
+  wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.4.3');
   wp_localize_script('autosuggestai', 'autosuggestai', array(
     'api_nonce' => wp_create_nonce('wp_rest'),
   ));
