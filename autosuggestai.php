@@ -4,7 +4,7 @@
  * Plugin Name: AutoSuggestAI
  * Plugin URI: https://github.com/raymondclowe/AutoSuggestAI
  * Description: Auto suggest text in the block editor using AI
- * Version: v2.4.4
+ * Version: v2.4.5
  * Author: Raymond Lowe 
  * Author URI: https://github.com/raymondclowe/
  * Text Domain: AutoSuggestAI
@@ -27,7 +27,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 
 function autosuggestai_enqueue_scripts()
 {
-  wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.4.4');
+  wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.4.5');
   wp_localize_script('autosuggestai', 'autosuggestai', array(
     'api_nonce' => wp_create_nonce('wp_rest'),
   ));
