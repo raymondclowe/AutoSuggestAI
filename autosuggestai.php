@@ -1,5 +1,5 @@
 <?php
-$errorLog = __DIR__ . '/error_log.txt';
+// $errorLog = __DIR__ . '/error_log.txt';
 /**
  * Plugin Name: AutoSuggestAI
  * Plugin URI: https://github.com/raymondclowe/AutoSuggestAI
@@ -16,13 +16,13 @@ defined('ABSPATH') or die('No script kiddies please!');
 // Where you want to log errors
 // error_log("Error message", 3, $errorLog);
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// ini_set('display_errors', 1);
+// ini_set('display_startup_errors', 1);
+// error_reporting(E_ALL);
 
-error_reporting(E_ALL);
-ini_set('log_errors', 1);
-ini_set('error_log', $errorLog);
+// error_reporting(E_ALL);
+// ini_set('log_errors', 1);
+// ini_set('error_log', $errorLog);
 
 
 function autosuggestai_enqueue_scripts()
