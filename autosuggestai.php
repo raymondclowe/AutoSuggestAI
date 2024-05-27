@@ -1,10 +1,10 @@
 <?php
-$errorLog = __DIR__ . '/error_log.txt';
+// $errorLog = __DIR__ . '/error_log.txt';
 /**
  * Plugin Name: AutoSuggestAI
  * Plugin URI: https://github.com/raymondclowe/AutoSuggestAI
  * Description: Auto suggest text in the block editor using AI
- * Version: v2.4.3
+ * Version: v2.4.4
  * Author: Raymond Lowe 
  * Author URI: https://github.com/raymondclowe/
  * Text Domain: AutoSuggestAI
@@ -16,18 +16,18 @@ defined('ABSPATH') or die('No script kiddies please!');
 // Where you want to log errors
 // error_log("Error message", 3, $errorLog);
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// ini_set('display_errors', 1);
+// ini_set('display_startup_errors', 1);
+// error_reporting(E_ALL);
 
-error_reporting(E_ALL);
-ini_set('log_errors', 1);
-ini_set('error_log', $errorLog);
+// error_reporting(E_ALL);
+// ini_set('log_errors', 1);
+// ini_set('error_log', $errorLog);
 
 
 function autosuggestai_enqueue_scripts()
 {
-  wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.4.3');
+  wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.4.4');
   wp_localize_script('autosuggestai', 'autosuggestai', array(
     'api_nonce' => wp_create_nonce('wp_rest'),
   ));
