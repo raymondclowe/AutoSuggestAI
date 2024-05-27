@@ -254,8 +254,7 @@ function getSuggestionPromise(title, context, existingText) {
         console.log('Passing title, context, and existing text to the internal proxy');
         // use the WPproxy, pass the title, context, and existing text to the proxy
         // and get the response from the proxy
-
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             thinkingIndicator('show');
             // pass the text fields directly to our internal wp proxy
             return fetch('/index.php?rest_route=/autosuggestai/v1/getsuggestion', {
@@ -269,7 +268,14 @@ function getSuggestionPromise(title, context, existingText) {
                     existingText: existingText
                 })
             })
-                .then(res => res.json())
+            .then(res => {
+                console.log(res)
+                debugger
+                if (!res.ok) {
+                    throw new Error(res.statusText);
+                }
+                return res.json();
+            })
                 .then(data => {
                     thinkingIndicator('hide');
                     responseText = data['suggestion'];
@@ -281,7 +287,7 @@ function getSuggestionPromise(title, context, existingText) {
                 })
                 .catch(err => {
                     thinkingIndicator('hide');
-                    console.error(err);
+                    resolve(err.message);
                 });
         });
     }
