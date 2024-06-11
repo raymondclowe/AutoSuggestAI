@@ -4,7 +4,7 @@
  * Plugin Name: AutoSuggestAI
  * Plugin URI: https://github.com/raymondclowe/AutoSuggestAI
  * Description: Auto suggest text in the block editor using AI
- * Version: v2.4.6
+ * Version: v2.4.7
  * Author: Raymond Lowe 
  * Author URI: https://github.com/raymondclowe/
  * Text Domain: AutoSuggestAI
@@ -14,6 +14,7 @@
 defined('ABSPATH') or die('No script kiddies please!');
 
 // Where you want to log errors
+// $errorLog = __DIR__ . '/error_log.txt';
 // error_log("Error message", 3, $errorLog);
 
 // ini_set('display_errors', 1);
@@ -27,7 +28,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 
 function autosuggestai_enqueue_scripts()
 {
-  wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.4.6');
+  wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.4.7');
   wp_localize_script('autosuggestai', 'autosuggestai', array(
     'api_nonce' => wp_create_nonce('wp_rest'),
   ));
@@ -329,7 +330,7 @@ EOD;
 
   if ( is_wp_error( $response ) ) {  
     $error_code = $response->get_error_code();
-    error_log("Error: ". $error_code. "\n", 3, $errorLog);
+    // error_log("Error: ". $error_code. "\n", 3, $errorLog);
     $error_message = $response->get_error_message();
     $status_code = $response->get_error_data('http_code');
 
@@ -339,8 +340,14 @@ EOD;
   }
   
   $data = json_decode(wp_remote_retrieve_body($response), true);
-//  error_log("Response: " . wp_remote_retrieve_body($response) . "\n", 3, $errorLog);
-  $responseText = trim($data['choices'][0]['message']['content']);
+  // error_log("Response: " . wp_remote_retrieve_body($response) . "\n", 3, $errorLog);
+  $responseText = '';
+  if (isset($data['choices'][0]['message']['content'])) {
+    $responseText = trim($data['choices'][0]['message']['content']);
+  } else {
+    $responseText = trim(json_encode($data));
+  }
+
 
   if (strpos($responseText, $existingText) === 0) {
     $responseText = substr($responseText, strlen($existingText));

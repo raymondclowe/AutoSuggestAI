@@ -1,5 +1,4 @@
-
-const Version = "v2.4.6";
+const Version = "v2.4.7";
 
 // console.log(Version)
 
@@ -269,22 +268,30 @@ function getSuggestionPromise(title, context, existingText) {
                     existingText: existingText
                 })
             })
-            .then(res => {
-                console.log(res)
-                debugger
-                if (!res.ok) {
-                    throw new Error(res.statusText);
-                }
-                return res.json();
-            })
+                .then(res => {
+                    // console.log(res);
+                    if (!res.ok) {                        
+                        return res.text();
+                    }
+                    try {
+                        return res.json(); 
+                    } catch (error) {
+                        return res.text();
+                    }
+                })
+
                 .then(data => {
                     thinkingIndicator('hide');
-                    responseText = data['suggestion'];
-                    // check if the responseText starts with the existingText, and if so trim it off
-                    if (responseText.startsWith(existingText.trim())) {
-                        responseText = responseText.substr(existingText.trim().length);
+                    if (typeof data === 'string') {
+                        resolve(data);
+                    } else {
+                        responseText = data['suggestion'];
+                        // check if the responseText starts with the existingText, and if so trim it off
+                        if (responseText.startsWith(existingText.trim())) {
+                            responseText = responseText.substr(existingText.trim().length);
+                        }
+                        resolve(responseText);
                     }
-                    resolve(responseText);
                 })
                 .catch(err => {
                     thinkingIndicator('hide');
