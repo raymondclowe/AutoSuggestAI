@@ -27,7 +27,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 
 function autosuggestai_enqueue_scripts()
 {
-  wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.4.5');
+  wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.4.6');
   wp_localize_script('autosuggestai', 'autosuggestai', array(
     'api_nonce' => wp_create_nonce('wp_rest'),
   ));
