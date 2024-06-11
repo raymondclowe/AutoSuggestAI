@@ -4,7 +4,7 @@
  * Plugin Name: AutoSuggestAI
  * Plugin URI: https://github.com/raymondclowe/AutoSuggestAI
  * Description: Auto suggest text in the block editor using AI
- * Version: v2.4.5
+ * Version: v2.4.6
  * Author: Raymond Lowe 
  * Author URI: https://github.com/raymondclowe/
  * Text Domain: AutoSuggestAI
@@ -374,9 +374,10 @@ function autosuggestai_get_suggestion()
 // test with curl
 // 
 // allow REST password authentication even with no ssl (so dev environment works)
-if ( $_SERVER['HTTP_HOST'] === 'localhost' ) {
-  add_filter( 'wp_is_application_passwords_available', '__return_true' ); 
+if (isset($_SERVER['HTTP_HOST'])) {
+  if ( $_SERVER['HTTP_HOST'] === 'localhost' ) {
+    add_filter( 'wp_is_application_passwords_available', '__return_true' ); 
+  }
 }
-
 
 ?>
