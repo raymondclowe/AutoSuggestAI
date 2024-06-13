@@ -6,7 +6,7 @@
  * Description: Auto suggest text in the block editor using AI
  * Version: v2.4.7
  * Requires at least: 6.5
- * Requires PHP:      8.2
+ * Requires PHP: 8.2
  * Author: Raymond Lowe 
  * Author URI: https://github.com/raymondclowe/
  * Text Domain: AutoSuggestAI
