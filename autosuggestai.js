@@ -29,7 +29,8 @@ const Version = "v2.4.7";
 // get the API key after a 10 second delay
 let aiApiKey;
 let AIDelay = 5;
-let aiInternalProxy = false
+let aiInternalProxy = false;
+let aidebug = false;
 let aiRestUrl = 'https://api.mistral.ai/v1/chat/completions';
 let aimodel = 'open-mistral-7b'; // default cheapest model
 let nearestPTag;
@@ -145,12 +146,19 @@ setTimeout(() => {
         // if data.aiInternalProxy is a text strihg "1" then set this to true, otherwise false
         aiInternalProxy = data.aiInternalProxy === "1";
         aimodel = data.aimodel;
+        aidebug = data.aidebug;
 
-        // console.log('API rest URL is ' + airesturl);
-        // console.log('API key is ' + aiApiKey);
-        // console.log('AI Internal Proxy is' + aiInternalProxy);
-        // console.log('AI Delay is ' + AIDelay);
-        // console.log('AI Model is ' + aimodel);
+        if (aidebug === "1") {
+            console.log('AI Debug is on');
+            console.log('API rest URL is ' + airesturl);
+            console.log('API key is ' + aiApiKey);
+            console.log('AI Internal Proxy is' + aiInternalProxy);
+            console.log('AI Delay is ' + AIDelay);
+            console.log('AI Model is ' + aimodel);
+
+        } else {
+            console.log('AI Debug is off');
+        }
 
     });
 }, 5000);
@@ -270,11 +278,11 @@ function getSuggestionPromise(title, context, existingText) {
             })
                 .then(res => {
                     // console.log(res);
-                    if (!res.ok) {                        
+                    if (!res.ok) {
                         return res.text();
                     }
                     try {
-                        return res.json(); 
+                        return res.json();
                     } catch (error) {
                         return res.text();
                     }
@@ -539,54 +547,55 @@ function idleNow() {
         suggestionState = 'inactive-before-suggestion'
     }
     else { // console.log("idle but not active, so must be inside the suggestion process") }
-    // console.log("suggestionState = " + suggestionState)
+        // console.log("suggestionState = " + suggestionState)
 
-    if (suggestionState = 'inactive-before-suggestion') { // the user has stopped typing, and we haven't got a suggestion yet
-        // get the text of the current wp editor block.
+        if (suggestionState = 'inactive-before-suggestion') { // the user has stopped typing, and we haven't got a suggestion yet
+            // get the text of the current wp editor block.
 
-        thinkingIndicator('show');
+            thinkingIndicator('show');
 
-        const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
-        // if the currentBlock is nul; or doesn't exist, the cursor must be on the title or 
-        // somewhere else on the screen.
-        if (currentBlock === undefined || currentBlock === null) {
-            suggestionState = 'active'
-            // console.log("Cursor is on title or somewhere else")
-            return;
+            const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
+            // if the currentBlock is nul; or doesn't exist, the cursor must be on the title or 
+            // somewhere else on the screen.
+            if (currentBlock === undefined || currentBlock === null) {
+                suggestionState = 'active'
+                // console.log("Cursor is on title or somewhere else")
+                return;
+            }
+
+            // if the current block is not a paragraph then exit.
+            if (currentBlock.name !== 'core/paragraph') {
+                console.error('Selected block is not a paragraph block.');
+                return;
+            }
+
+            // check if the last character of the current block is a whitespace, if it is not then
+            // exit as we only suggest when the user is pausing after a word. 
+            if (currentBlock.name != 'core/paragraph') {
+                // console.log("Selected block is not a paragraph block.");
+                return;
+            }
+            // only proceed if we are either on a block with a space at the end, or on an empty block
+            currentblockText = getBlockText(currentBlock)
+            if (currentblockText.length > 0 && currentblockText[currentblockText.length - 1] !== " ") {
+                // console.log("Last character is not a whitespace, so we are not suggesting")
+                return;
+            }
+
+            // get the text from the top of the post to the current block
+            let contextText = getContextText();
+
+            // // console.log("contextText: " + contextText)
+
+            let currentBlockText = getBlockText(currentBlock)
+
+            const title = wp.data.select("core/editor").getEditedPostAttribute('title');
+
+            const suggestionTextPromise = getSuggestionPromise(title, contextText, currentBlockText)
+
+            suggestionState = 'inactive-asked-for-suggestion'
+            suggestionTextPromise.then(handleSuggestion)
         }
-
-        // if the current block is not a paragraph then exit.
-        if (currentBlock.name !== 'core/paragraph') {
-            console.error('Selected block is not a paragraph block.');
-            return;
-        }
-
-        // check if the last character of the current block is a whitespace, if it is not then
-        // exit as we only suggest when the user is pausing after a word. 
-        if (currentBlock.name != 'core/paragraph') {
-            // console.log("Selected block is not a paragraph block.");
-            return;
-        }
-        // only proceed if we are either on a block with a space at the end, or on an empty block
-        currentblockText = getBlockText(currentBlock)
-        if (currentblockText.length > 0 && currentblockText[currentblockText.length - 1] !== " ") {
-            // console.log("Last character is not a whitespace, so we are not suggesting")
-            return;
-        }
-
-        // get the text from the top of the post to the current block
-        let contextText = getContextText();
-
-        // // console.log("contextText: " + contextText)
-
-        let currentBlockText = getBlockText(currentBlock)
-
-        const title = wp.data.select("core/editor").getEditedPostAttribute('title');
-
-        const suggestionTextPromise = getSuggestionPromise(title, contextText, currentBlockText)
-
-        suggestionState = 'inactive-asked-for-suggestion'
-        suggestionTextPromise.then(handleSuggestion)
     }
 }
 

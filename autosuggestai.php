@@ -1,5 +1,5 @@
 <?php
-// $errorLog = __DIR__ . '/error_log.txt';
+// $errorLog = __DIR__ . '/AISuggestErrorLogging.txt';
 /**
  * Plugin Name: AutoSuggestAI
  * Plugin URI: https://github.com/raymondclowe/AutoSuggestAI
@@ -13,25 +13,22 @@
 
 defined('ABSPATH') or die('No script kiddies please!');
 
-// Where you want to log errors
-// $errorLog = __DIR__ . '/error_log.txt';
-// error_log("Error message", 3, $errorLog);
+$errorLog = "";
+$AISuggest_Debug = false;
 
-// ini_set('display_errors', 1);
-// ini_set('display_startup_errors', 1);
-// error_reporting(E_ALL);
-
-// error_reporting(E_ALL);
-// ini_set('log_errors', 1);
-// ini_set('error_log', $errorLog);
-
+function AISuggestErrorLogging($errorText)
+{
+  global $errorLog;
+  error_log($errorText . "\n", 3, $errorLog);
+};
 
 function autosuggestai_enqueue_scripts()
 {
   wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.4.7');
   wp_localize_script('autosuggestai', 'autosuggestai', array(
     'api_nonce' => wp_create_nonce('wp_rest'),
-  ));
+  )
+  );
 }
 
 add_action('enqueue_block_editor_assets', 'autosuggestai_enqueue_scripts');
@@ -60,11 +57,11 @@ add_action('admin_init', 'autosuggestai_admin_init');
 
 function autosuggestai_admin_init()
 {
-  register_setting('autosuggestai_options', 'airesturl', array('type' => 'string', 'sanitize_callback' => 'sanitize_url','default' => 'https://api.mistral.ai/v1/chat/completions',));
-  register_setting('autosuggestai_options', 'aiapikey', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field','default' => 'sk-xxxxxxxxxxxxxx',));
+  register_setting('autosuggestai_options', 'airesturl', array('type' => 'string', 'sanitize_callback' => 'sanitize_url', 'default' => 'https://api.mistral.ai/v1/chat/completions', ));
+  register_setting('autosuggestai_options', 'aiapikey', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'sk-xxxxxxxxxxxxxx', ));
   register_setting('autosuggestai_options', 'aiInternalProxy', array('type' => 'boolean', 'sanitize_callback' => 'rest_sanitize_boolean', 'default' => false));
-  register_setting('autosuggestai_options', 'AIDelay', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field','default' => 5,));
-  register_setting('autosuggestai_options', 'aimodel', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'mistral-tiny', ) );
+  register_setting('autosuggestai_options', 'AIDelay', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 5, ));
+  register_setting('autosuggestai_options', 'aimodel', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'mistral-tiny', ));
   register_setting('autosuggestai_options', 'ainotes', array('type' => 'string', 'sanitize_callback' => 'wp_kses_post'));
 
 
@@ -87,7 +84,7 @@ function autosuggestai_admin_init()
     'autosuggestai_aiapikey_callback',
     'autosuggestai',
     'autosuggestai_main'
-  );  
+  );
   add_settings_field(
     'aiInternalProxy',
     'Use Internal Proxy',
@@ -106,7 +103,7 @@ function autosuggestai_admin_init()
     'aimodel',
     'AI Model Name',
     'autosuggestai_aimodel_callback',
-    'autosuggestai', 
+    'autosuggestai',
     'autosuggestai_main'
   );
   add_settings_field(
@@ -145,17 +142,17 @@ function autosuggestai_aiapikey_callback()
   $value = get_option('aiapikey');
   echo '<input type="text" id="aiapikey" name="aiapikey" value="' . esc_attr($value) . '" size="40" />';
   echo '<div style="max-width: 500px; margin-top: 5px;"><i>';
-  echo 'Get your keys here: <a href="https://platform.openai.com/account/api-keys" target="_blank">OpenAI</a>, ';  
+  echo 'Get your keys here: <a href="https://platform.openai.com/account/api-keys" target="_blank">OpenAI</a>, ';
   echo '<a href="https://console.groq.com/keys" target="_blank">GroqCloud</a>, ';
   echo '<a href="https://openrouter.ai/keys" target="_blank">OpenRouter.AI</a>, ';
   echo '<a href="https://console.mistral.ai/api-keys/" target="_blank">Mistral.</a> You will need to create and fund an account yourself.';
   echo '</i></div>';
-  
+
 }
 function autosuggestai_aiInternalProxy_callback()
 {
   $value = get_option('aiInternalProxy');
-  echo '<input type="checkbox" id="aiInternalProxy" name="aiInternalProxy" value="true" '. checked($value, true, false).'/> <i>Send AI API requests via the wordpress server as a proxy.</i>';
+  echo '<input type="checkbox" id="aiInternalProxy" name="aiInternalProxy" value="true" ' . checked($value, true, false) . '/> <i>Send AI API requests via the wordpress server as a proxy.</i>';
 }
 function autosuggestai_AIDelay_callback()
 {
@@ -181,7 +178,7 @@ function autosuggestai_aimodel_callback()
   echo '<li>Openrouter.ai: <a href="https://openrouter.ai/docs#models" target="_blank">https://openrouter.ai/docs#models</a> &#x2197;</li>';
   echo '<li>Mistral.ai: <a href="https://docs.mistral.ai/guides/model-selection/" target="_blank">https://docs.mistral.ai/guides/model-selection/</a> &#x2197;</li>';
   echo '<li>GroqCloud: <a href="https://console.groq.com/models" target="_blank">https://console.groq.com/models</a> &#x2197;</li>';
-  
+
   echo '<li>OpenAI: <a href="https://platform.openai.com/docs/models/overview" target="_blank">https://platform.openai.com/docs/models/overview</a> &#x2197;</li>';
   echo '</ul>';
 
@@ -206,13 +203,16 @@ function autosuggestai_ainotes_callback()
 // Add REST API route
 // curl http://localhost:8881/index.php?rest_route=/autosuggestai/v1/config
 add_action('rest_api_init', function () {
-  register_rest_route('autosuggestai/v1', '/config', array (
-    'methods' => 'GET',
-    'callback' => 'autosuggestai_get_config',
-    'permission_callback' => function ($request) {
-      return current_user_can('edit_posts') || $_SERVER['HTTP_HOST'] === 'localhost';
-    }
-  )
+  register_rest_route(
+    'autosuggestai/v1',
+    '/config',
+    array(
+      'methods' => 'GET',
+      'callback' => 'autosuggestai_get_config',
+      'permission_callback' => function ($request) {
+        return current_user_can('edit_posts') || $_SERVER['HTTP_HOST'] === 'localhost';
+      }
+    )
   );
 });
 
@@ -221,12 +221,14 @@ add_action('rest_api_init', function () {
 
 function autosuggestai_get_config()
 {
+  global $AISuggest_Debug;
   return array(
     'airesturl' => htmlspecialchars(get_option('airesturl')),
     'aiapikey' => htmlspecialchars(get_option('aiapikey')),
     'aiInternalProxy' => htmlspecialchars(get_option('aiInternalProxy')),
     'AIDelay' => htmlspecialchars(get_option('AIDelay')),
     'aimodel' => htmlspecialchars(get_option('aimodel')),
+    'aidebug' => $AISuggest_Debug
   );
 }
 
@@ -234,23 +236,27 @@ function autosuggestai_get_config()
 // curl -X POST http://localhost:8881/index.php?rest_route=/autosuggestai/v1/getsuggestion -H "Content-Type: application/json" -d "{\"title\":\"hello world\",\"context\":\"this is the context\",\"existingText\":\"Tell me about yellow\"}"
 
 add_action('rest_api_init', function () {
-  register_rest_route('autosuggestai/v1', '/getsuggestion', array (
-    'methods' => 'POST',
-    'callback' => 'autosuggestai_get_suggestion',
-    'permission_callback' => function ($request) {
-      return  current_user_can('edit_posts');      
-    },
-  )
+  register_rest_route(
+    'autosuggestai/v1',
+    '/getsuggestion',
+    array(
+      'methods' => 'POST',
+      'callback' => 'autosuggestai_get_suggestion',
+      'permission_callback' => function ($request) {
+        return current_user_can('edit_posts');
+      },
+    )
   );
 });
 
-function autosuggestai_get_responseText($title, $context, $existingText, $mistralApiUrl, $aimodel, $aiapikey) {
+function autosuggestai_get_responseText($title, $context, $existingText, $mistralApiUrl, $aimodel, $aiapikey)
+{
 
-global $errorLog;
+  global $errorLog;
 
-$promptTemplate = "[INST] {prompt} [/INST]"; // <s> only needed for multi turn
+  $promptTemplate = "[INST] {prompt} [/INST]"; // <s> only needed for multi turn
 
-$thePrompt = <<<EOD
+  $thePrompt = <<<EOD
 You are an automated writing assistant who will suggest the next piece of text to write after an example given to you. The suggested text you provide will always be brief, meaningful, sensible, in keeping with the style of the example. You will be given the title of the piece of writing, one or more preceding paragraphs, and the incomplete paragraph that needs extending. The place to add text will be marked with three dots like this ...
 
 
@@ -282,78 +288,82 @@ Here is the text to be extended:
 EOD;
 
 
-// error_log("template will be  : " . $promptTemplate . "\n", 3, $errorLog);
+  AISuggestErrorLogging("template will be  : " . $promptTemplate . "\n", 3, $errorLog);
 
 
 
-  
-//   error_log("Starting: autosuggestai_get_responseText\n", 3, $errorLog);
-//   error_log("prompt is : " . $promptTemplate. "\n", 3, $errorLog);
+
+  //   AISuggestErrorLogging("Starting: autosuggestai_get_responseText\n", 3, $errorLog);
+//   AISuggestErrorLogging("prompt is : " . $promptTemplate. "\n", 3, $errorLog);
 
   // Create prompt
   $instruction = str_replace('{title}', $title, $thePrompt);
-  $instruction = str_replace('{context}', $context, $instruction); 
+  $instruction = str_replace('{context}', $context, $instruction);
   $instruction = str_replace('{text}', $existingText . " ...", $instruction);
 
   $messageContent = str_replace('{prompt}', $instruction, $promptTemplate);
 
-// error_log("Key will be : " . $aiapikey. "\n", 3, $errorLog);
-// error_log("Message will be  : " . $messageContent. "\n", 3, $errorLog);
-// error_log("instruction will be  : " . $instruction. "\n", 3, $errorLog);
+  AISuggestErrorLogging("Key will be : " . $aiapikey . "\n", 3, $errorLog);
+  AISuggestErrorLogging("Message will be  : " . $messageContent . "\n", 3, $errorLog);
+  AISuggestErrorLogging("instruction will be  : " . $instruction . "\n", 3, $errorLog);
 
   // $mistralApiUrl = "dummy";
   // Make API request
-  $response = wp_remote_post($mistralApiUrl, array(
-    'method' => 'POST',
-    'timeout' => 45,
-    'redirection' => 5,
-    'httpversion' => '1.0',
-    'blocking' => true,  
-    'headers' => array(
-      'Authorization' => 'Bearer ' . $aiapikey,
-      'Content-Type' => 'application/json',
-      'Accept' => 'application/json',
-    ),
-    'body' => json_encode(array(
-      'model' => $aimodel,
-      'messages' => array(
-        array('role' => 'user', 'content' => $messageContent)  
+  $response = wp_remote_post(
+    $mistralApiUrl,
+    array(
+      'method' => 'POST',
+      'timeout' => 45,
+      'redirection' => 5,
+      'httpversion' => '1.0',
+      'blocking' => true,
+      'headers' => array(
+        'Authorization' => 'Bearer ' . $aiapikey,
+        'Content-Type' => 'application/json',
+        'Accept' => 'application/json',
       ),
-      'temperature' => 0.6,
-      'max_tokens' => 100,
-      'top_p' => 0.9,
-      'stream' => false,
-      // 'random_seed' => null  // openai doesn't support this field
-    ))
+      'body' => json_encode(
+        array(
+          'model' => $aimodel,
+          'messages' => array(
+            array('role' => 'user', 'content' => $messageContent)
+          ),
+          'temperature' => 0.6,
+          'max_tokens' => 100,
+          'top_p' => 0.9,
+          'stream' => false,
+          // 'random_seed' => null  // openai doesn't support this field
+        )
+      )
     )
   );
 
-  if ( is_wp_error( $response ) ) {  
+  if (is_wp_error($response)) {
     $error_code = $response->get_error_code();
-    // error_log("Error: ". $error_code. "\n", 3, $errorLog);
+    AISuggestErrorLogging("Error: " . $error_code . "\n", 3, $errorLog);
     $error_message = $response->get_error_message();
     $status_code = $response->get_error_data('http_code');
 
     // assemble errors into a sensible string and return it
-    $error_string = "Error code: ". $error_code. " - ". $error_message. " - Status code: ". $status_code;
-    return $error_string;    
+    $error_string = "Error code: " . $error_code . " - " . $error_message . " - Status code: " . $status_code;
+    return $error_string;
   }
-  
+
   $data = json_decode(wp_remote_retrieve_body($response), true);
-  // error_log("Response: " . wp_remote_retrieve_body($response) . "\n", 3, $errorLog);
+  AISuggestErrorLogging("Response: " . wp_remote_retrieve_body($response) . "\n", 3, $errorLog);
   $responseText = '';
   if (isset($data['choices'][0]['message']['content'])) {
     $responseText = trim($data['choices'][0]['message']['content']);
   } else {
     $responseText = trim(json_encode($data));
-  }
+  };
 
 
   if (strpos($responseText, $existingText) === 0) {
     $responseText = substr($responseText, strlen($existingText));
   }
 
-  // error_log("responseText will be : " . $responseText. "\n", 3, $errorLog);
+  AISuggestErrorLogging("responseText will be : " . $responseText . "\n", 3, $errorLog);
 
   return array('suggestion' => $responseText);
 
@@ -362,7 +372,7 @@ EOD;
 
 // API suggestion callback  
 function autosuggestai_get_suggestion()
-{  
+{
   // get the posted data
   $data = json_decode(file_get_contents("php://input"));
   $title = $data->title;
@@ -373,18 +383,34 @@ function autosuggestai_get_suggestion()
   $aiRestUrl = get_option('airesturl');
 
   $responseText = autosuggestai_get_responseText($title, $context, $existingText, $aiRestUrl, $model, $aiapikey);
-  
-  
-  return  $responseText;
+
+
+  return $responseText;
 }
 
 // test with curl
 // 
 // allow REST password authentication even with no ssl (so dev environment works)
-if (isset($_SERVER['HTTP_HOST'])) {
-  if ( $_SERVER['HTTP_HOST'] === 'localhost' ) {
-    add_filter( 'wp_is_application_passwords_available', '__return_true' ); 
-  }
-}
+
+
+// if (isset($_SERVER['HTTP_HOST'])) {
+//   if (str_starts_with($_SERVER['HTTP_HOST'], 'localhost')) {
+
+    $AISuggest_Debug = true;
+
+    // Where you want to log errors
+    $errorLog = __DIR__ . '/AISuggestErrorLogging.txt';
+    AISuggestErrorLogging("Error message", 3, $errorLog);
+
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+
+    error_reporting(E_ALL);
+    ini_set('log_errors', 1);
+    ini_set('error_log', $errorLog);
+
+    add_filter('wp_is_application_passwords_available', '__return_true');
+//   }
+// }
 
 ?>
