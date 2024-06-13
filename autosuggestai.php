@@ -191,7 +191,7 @@ function autosuggestai_aimodel_callback()
   echo '<ul>';
   echo '<li>Openrouter.ai: <a href="https://openrouter.ai/docs#models" target="_blank">https://openrouter.ai/docs#models</a> &#x2197;</li>';
   echo '<li>Mistral.ai: <a href="https://docs.mistral.ai/guides/model-selection/" target="_blank">https://docs.mistral.ai/guides/model-selection/</a> &#x2197;</li>';
-  echo '<li>GroqCloud: <a href="https://console.groq.com/models" target="_blank">https://console.groq.com/models</a> &#x2197;</li>';
+  echo '<li>GroqCloud: <a href="https://console.groq.com/docs/models" target="_blank">https://console.groq.com/docs/models</a> &#x2197;</li>';
 
   echo '<li>OpenAI: <a href="https://platform.openai.com/docs/models/overview" target="_blank">https://platform.openai.com/docs/models/overview</a> &#x2197;</li>';
   echo '</ul>';

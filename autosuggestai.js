@@ -242,7 +242,12 @@ function getSuggestionPromise(title, context, existingText) {
             })
                 .then(res => {
                     if (!res.ok) {
-                        throw new Error(res.statusText);
+                        // the show what the problem is return the entire res object as a string
+                        // resolve(" API return error : " + JSON.stringify(res));
+                        // console.log(res);
+                        // return res.status into a string, then append statusText and Error it
+                        throw new Error("Error status: " + res.status +": " +  res.statusText);
+                        
                     }
                     return res.json();
                 })
@@ -257,7 +262,8 @@ function getSuggestionPromise(title, context, existingText) {
                     resolve(responseText);
                 })
                 .catch(error => {
-                    resolve(" API return error : check your api key and model name");
+                    console.log(error);
+                    resolve(" API return error : check your api key and model name : " + error.message);
                     thinkingIndicator('hide');
                     aisuggestlog(error);
                 })
