@@ -13,13 +13,25 @@
 
 defined('ABSPATH') or die('No script kiddies please!');
 
-$errorLog = "";
+if (!preg_match('/^localhost/', $_SERVER['HTTP_HOST'])) { // check if not on localhost
+  if (!current_user_can('edit_posts')) { // check if user cannot edit posts
+    return; // return if user cannot edit posts and not on localhost
+  }
+}
+
+
+$AIAutoSuggestDebugLogFileName = "";
 $AISuggest_Debug = false;
 
-function AISuggestErrorLogging($errorText)
+// test if wordpress debugging is enabled in wp-config.php and set the debug variable on if it is
+if (defined('WP_DEBUG') && WP_DEBUG) {
+  $AISuggest_Debug = true;
+}
+
+function AISuggestErrorLogging($debugText)
 {
-  global $errorLog;
-  error_log($errorText . "\n", 3, $errorLog);
+  global $AIAutoSuggestDebugLogFileName;
+  error_log($debugText . "\n", 3, $AIAutoSuggestDebugLogFileName);
 };
 
 function autosuggestai_enqueue_scripts()
@@ -210,7 +222,7 @@ add_action('rest_api_init', function () {
       'methods' => 'GET',
       'callback' => 'autosuggestai_get_config',
       'permission_callback' => function ($request) {
-        return current_user_can('edit_posts') || $_SERVER['HTTP_HOST'] === 'localhost';
+        return current_user_can('edit_posts') || str_starts_with($_SERVER['HTTP_HOST'], 'localhost');
       }
     )
   );
@@ -243,7 +255,7 @@ add_action('rest_api_init', function () {
       'methods' => 'POST',
       'callback' => 'autosuggestai_get_suggestion',
       'permission_callback' => function ($request) {
-        return current_user_can('edit_posts');
+        return current_user_can('edit_posts') || str_starts_with($_SERVER['HTTP_HOST'], 'localhost');
       },
     )
   );
@@ -252,7 +264,7 @@ add_action('rest_api_init', function () {
 function autosuggestai_get_responseText($title, $context, $existingText, $mistralApiUrl, $aimodel, $aiapikey)
 {
 
-  global $errorLog;
+  global $AIAutoSuggestDebugLogFileName;
 
   $promptTemplate = "[INST] {prompt} [/INST]"; // <s> only needed for multi turn
 
@@ -288,7 +300,7 @@ Here is the text to be extended:
 EOD;
 
 
-  AISuggestErrorLogging("template will be  : " . $promptTemplate . "\n", 3, $errorLog);
+  AISuggestErrorLogging("template will be  : " . $promptTemplate . "\n", 3, $AIAutoSuggestDebugLogFileName);
 
 
 
@@ -303,9 +315,9 @@ EOD;
 
   $messageContent = str_replace('{prompt}', $instruction, $promptTemplate);
 
-  AISuggestErrorLogging("Key will be : " . $aiapikey . "\n", 3, $errorLog);
-  AISuggestErrorLogging("Message will be  : " . $messageContent . "\n", 3, $errorLog);
-  AISuggestErrorLogging("instruction will be  : " . $instruction . "\n", 3, $errorLog);
+  AISuggestErrorLogging("Key will be : " . $aiapikey . "\n", 3, $AIAutoSuggestDebugLogFileName);
+  AISuggestErrorLogging("Message will be  : " . $messageContent . "\n", 3, $AIAutoSuggestDebugLogFileName);
+  AISuggestErrorLogging("instruction will be  : " . $instruction . "\n", 3, $AIAutoSuggestDebugLogFileName);
 
   // $mistralApiUrl = "dummy";
   // Make API request
@@ -340,7 +352,7 @@ EOD;
 
   if (is_wp_error($response)) {
     $error_code = $response->get_error_code();
-    AISuggestErrorLogging("Error: " . $error_code . "\n", 3, $errorLog);
+    AISuggestErrorLogging("Error: " . $error_code . "\n", 3, $AIAutoSuggestDebugLogFileName);
     $error_message = $response->get_error_message();
     $status_code = $response->get_error_data('http_code');
 
@@ -350,7 +362,7 @@ EOD;
   }
 
   $data = json_decode(wp_remote_retrieve_body($response), true);
-  AISuggestErrorLogging("Response: " . wp_remote_retrieve_body($response) . "\n", 3, $errorLog);
+  AISuggestErrorLogging("Response: " . wp_remote_retrieve_body($response) . "\n", 3, $AIAutoSuggestDebugLogFileName);
   $responseText = '';
   if (isset($data['choices'][0]['message']['content'])) {
     $responseText = trim($data['choices'][0]['message']['content']);
@@ -363,7 +375,7 @@ EOD;
     $responseText = substr($responseText, strlen($existingText));
   }
 
-  AISuggestErrorLogging("responseText will be : " . $responseText . "\n", 3, $errorLog);
+  AISuggestErrorLogging("responseText will be : " . $responseText . "\n", 3, $AIAutoSuggestDebugLogFileName);
 
   return array('suggestion' => $responseText);
 
@@ -399,15 +411,15 @@ function autosuggestai_get_suggestion()
     $AISuggest_Debug = true;
 
     // Where you want to log errors
-    $errorLog = __DIR__ . '/AISuggestErrorLogging.txt';
-    AISuggestErrorLogging("Error message", 3, $errorLog);
+    $AIAutoSuggestDebugLogFileName = __DIR__ . '/AISuggestErrorLogging.txt';
+    AISuggestErrorLogging("Error message", 3, $AIAutoSuggestDebugLogFileName);
 
     ini_set('display_errors', 1);
     ini_set('display_startup_errors', 1);
 
     error_reporting(E_ALL);
     ini_set('log_errors', 1);
-    ini_set('error_log', $errorLog);
+    ini_set('error_log', $AIAutoSuggestDebugLogFileName);
 
     add_filter('wp_is_application_passwords_available', '__return_true');
 //   }

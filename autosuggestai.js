@@ -1,6 +1,5 @@
 const Version = "v2.4.7";
 
-// console.log(Version)
 
 // There are various possible states and need to keep track of them.
 // State 1 is active, in which case nothing is to be suggested and
@@ -39,6 +38,13 @@ let oldContent;
 let thinkingDiv;
 let actionBox
 let suggestedBlockIDs = [];
+
+// custom logging function that only logs if the aidebug is true
+function aisuggestlog(msg) {
+    if (aidebug) {
+        console.log(msg)
+    }
+}
 
 // different kinds of blocks and different wp versions may expose their text content in 
 // different ways. this helper function just gets any text from any block, regardless of the type
@@ -126,7 +132,7 @@ function thinkingIndicator(action) {
 
 function suggestionAction() {
     // show the action box
-    // console.log("Showing action box")
+    aisuggestlog("Showing action box")
     actionBox.style.display = 'block';
 }
 
@@ -138,7 +144,7 @@ setTimeout(() => {
         })
     }).then(res => res.json()
     ).then(data => {
-        // console.log(data);
+        aisuggestlog(data);
         airesturl = data.airesturl;
         aiApiKey = data.aiapikey;
         // get the integer value of the delay, it will be a string in the json data, so turn to a number
@@ -201,13 +207,13 @@ Here is the text to be extended:
 
 function getSuggestionPromise(title, context, existingText) {
     if (!aiInternalProxy) { // use the internal proxy by passing it the fields directly
-        // console.log('Construct prompt and directly send to AI');
+        aisuggestlog('Construct prompt and directly send to AI');
         // return a promise to a fetch to the mistral api
         return new Promise((resolve) => {
             // create the total prompt using the template, the prompt, and the existing text.
             instruction = thePrompt.replace('{title}', title).replace('{context}', context).replace('{text}', existingText.trim() + " ... ");
             messageContent = promptTemplate.replace('{prompt}', instruction)
-            // // console.log('messageContent is' + messageContent);
+            aisuggestlog('messageContent is' + messageContent);
             const data = {
                 model: aimodel,
                 messages: [
@@ -253,13 +259,13 @@ function getSuggestionPromise(title, context, existingText) {
                 .catch(error => {
                     resolve(" API return error : check your api key and model name");
                     thinkingIndicator('hide');
-                    // console.log(error);
+                    aisuggestlog(error);
                 })
         }
         );
     }
     else {
-        // console.log('Passing title, context, and existing text to the internal proxy');
+        aisuggestlog('Passing title, context, and existing text to the internal proxy');
         // use the WPproxy, pass the title, context, and existing text to the proxy
         // and get the response from the proxy
         return new Promise((resolve, reject) => {
@@ -277,7 +283,7 @@ function getSuggestionPromise(title, context, existingText) {
                 })
             })
                 .then(res => {
-                    // console.log(res);
+                    aisuggestlog(res);
                     if (!res.ok) {
                         return res.text();
                     }
@@ -325,7 +331,7 @@ let suggestionText;
  * @returns {void}
  */
 function moveCursorTo(cursorPosition) {
-    // console.log("Move cursor to " + cursorPosition)
+    aisuggestlog("Move cursor to " + cursorPosition)
     wp.data.dispatch('core/block-editor').selectionChange(wp.data.select('core/block-editor').getSelectedBlock().clientId, "content", cursorPosition, cursorPosition);
 }
 
@@ -338,7 +344,7 @@ function insertTextIntoCurrentBlock(text) {
         // Show the action box
         suggestionAction();
 
-        // console.log("Inserting text in suggestion mode")
+        aisuggestlog("Inserting text in suggestion mode")
         suggestedBlockIDs = [];
 
         // Get the selected block
@@ -413,7 +419,7 @@ function insertTextIntoCurrentBlock(text) {
         }
     } else {
         // user accepted the suggestion
-        // console.log("Inserting text in active mode")
+        aisuggestlog("Inserting text in active mode")
 
         // Remove italic tags from suggested blocks
         suggestedBlockIDs.forEach(blockId => {
@@ -475,7 +481,7 @@ function getcurrentElementFromCanvas() {
 
         // Access the paragraphs within the iframe
         for (let i = 0; i < paragraphs.length; i++) {
-            // console.log(paragraphs[i].textContent);
+            aisuggestlog(paragraphs[i].textContent);
             // check if the paragraph has the class '.is-selected'
             if (paragraphs[i].classList.contains('is-selected')) {
                 currentElement = paragraphs[i];
@@ -496,10 +502,10 @@ async function moveCursorToEnd() {
 
 
 function handleSuggestion(text) {
-    // console.log("Got some suggestion: " + text)
+    aisuggestlog("Got some suggestion: " + text)
     // check if the state is still inactive asked for suggestion, as the user may have typed and so it will be active now. if it is the wrong status then we need to exit/return and give up on the suggestion.
     if (suggestionState !== 'inactive-asked-for-suggestion') {
-        // console.log("Suggestion state is wrong, so we are giving up on the suggestion")
+        aisuggestlog("Suggestion state is wrong, so we are giving up on the suggestion")
         return;
     }
     suggestionText = text
@@ -541,61 +547,60 @@ function handleSuggestion(text) {
 
 function idleNow() {
 
-    // console.log("idle")
+    aisuggestlog("idle")
     idle = true;
     if (suggestionState === 'active') {
         suggestionState = 'inactive-before-suggestion'
     }
-    else { // console.log("idle but not active, so must be inside the suggestion process") }
-        // console.log("suggestionState = " + suggestionState)
+    else { aisuggestlog("idle but not active, so must be inside the suggestion process") }
+    aisuggestlog("suggestionState = " + suggestionState)
 
-        if (suggestionState = 'inactive-before-suggestion') { // the user has stopped typing, and we haven't got a suggestion yet
-            // get the text of the current wp editor block.
+    if (suggestionState = 'inactive-before-suggestion') { // the user has stopped typing, and we haven't got a suggestion yet
+        // get the text of the current wp editor block.
 
-            thinkingIndicator('show');
+        thinkingIndicator('show');
 
-            const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
-            // if the currentBlock is nul; or doesn't exist, the cursor must be on the title or 
-            // somewhere else on the screen.
-            if (currentBlock === undefined || currentBlock === null) {
-                suggestionState = 'active'
-                // console.log("Cursor is on title or somewhere else")
-                return;
-            }
-
-            // if the current block is not a paragraph then exit.
-            if (currentBlock.name !== 'core/paragraph') {
-                console.error('Selected block is not a paragraph block.');
-                return;
-            }
-
-            // check if the last character of the current block is a whitespace, if it is not then
-            // exit as we only suggest when the user is pausing after a word. 
-            if (currentBlock.name != 'core/paragraph') {
-                // console.log("Selected block is not a paragraph block.");
-                return;
-            }
-            // only proceed if we are either on a block with a space at the end, or on an empty block
-            currentblockText = getBlockText(currentBlock)
-            if (currentblockText.length > 0 && currentblockText[currentblockText.length - 1] !== " ") {
-                // console.log("Last character is not a whitespace, so we are not suggesting")
-                return;
-            }
-
-            // get the text from the top of the post to the current block
-            let contextText = getContextText();
-
-            // // console.log("contextText: " + contextText)
-
-            let currentBlockText = getBlockText(currentBlock)
-
-            const title = wp.data.select("core/editor").getEditedPostAttribute('title');
-
-            const suggestionTextPromise = getSuggestionPromise(title, contextText, currentBlockText)
-
-            suggestionState = 'inactive-asked-for-suggestion'
-            suggestionTextPromise.then(handleSuggestion)
+        const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
+        // if the currentBlock is nul; or doesn't exist, the cursor must be on the title or 
+        // somewhere else on the screen.
+        if (currentBlock === undefined || currentBlock === null) {
+            suggestionState = 'active'
+            aisuggestlog("Cursor is on title or somewhere else")
+            return;
         }
+
+        // if the current block is not a paragraph then exit.
+        if (currentBlock.name !== 'core/paragraph') {
+            console.error('Selected block is not a paragraph block.');
+            return;
+        }
+
+        // check if the last character of the current block is a whitespace, if it is not then
+        // exit as we only suggest when the user is pausing after a word. 
+        if (currentBlock.name != 'core/paragraph') {
+            aisuggestlog("Selected block is not a paragraph block.");
+            return;
+        }
+        // only proceed if we are either on a block with a space at the end, or on an empty block
+        currentblockText = getBlockText(currentBlock)
+        if (currentblockText.length > 0 && currentblockText[currentblockText.length - 1] !== " ") {
+            aisuggestlog("Last character is not a whitespace, so we are not suggesting")
+            return;
+        }
+
+        // get the text from the top of the post to the current block
+        let contextText = getContextText();
+
+        aisuggestlog("contextText: " + contextText)
+
+        let currentBlockText = getBlockText(currentBlock)
+
+        const title = wp.data.select("core/editor").getEditedPostAttribute('title');
+
+        const suggestionTextPromise = getSuggestionPromise(title, contextText, currentBlockText)
+
+        suggestionState = 'inactive-asked-for-suggestion'
+        suggestionTextPromise.then(handleSuggestion)
     }
 }
 
@@ -622,18 +627,21 @@ function getContextText() {
 
 function resetIdle(event) {
     // check if it is a button that was clicked
-    // console.log("Event:" + event.target.tagName)
-    if (event && event.target.tagName === 'I') {
-        return;
+    if (event && event.target) {
+        aisuggestlog("Event:" + event.target.tagName);
+
+        if (event && event.target.tagName === 'I') {
+            return;
+        }
     }
 
     clearTimeout(idleTimeout);
     idle = false;
-    // console.log("Start reset idle")
+    aisuggestlog("Start reset idle")
     // if a suggestion has been made, then reset the text of the block to the original text from the clone
     if (suggestionState === 'inactive-got-suggestion') {
         // nearestPTag.innerHTML = originalNearestPTag.innerHTML;
-        // console.log('should give up on suggestion')
+        aisuggestlog('should give up on suggestion')
         // take the current block and set it to the previous text, then move the cursor to the end
 
         wp.data.dispatch('core/block-editor').updateBlockAttributes(wp.data.select('core/block-editor').getSelectedBlock().clientId, {
@@ -667,7 +675,7 @@ link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.m
 document.head.appendChild(link);
 
 // Creating action box
-// console.log("Creating action box")
+aisuggestlog("Creating action box")
 actionBox = document.createElement('div');
 actionBox.id = 'actionBox';
 actionBox.style.backgroundColor = 'white';
@@ -711,3 +719,6 @@ document.addEventListener('DOMContentLoaded', () => {
 })
 
 resetIdle();
+
+console.log("Autosuggest AI loaded, version: " + Version)
+
