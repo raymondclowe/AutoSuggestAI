@@ -1,10 +1,12 @@
 <?php
-// $errorLog = __DIR__ . '/AISuggestErrorLogging.txt';
+
 /**
  * Plugin Name: AutoSuggestAI
  * Plugin URI: https://github.com/raymondclowe/AutoSuggestAI
  * Description: Auto suggest text in the block editor using AI
  * Version: v2.4.7
+ * Requires at least: 6.5
+ * Requires PHP:      8.2
  * Author: Raymond Lowe 
  * Author URI: https://github.com/raymondclowe/
  * Text Domain: AutoSuggestAI
@@ -20,7 +22,7 @@ if (!preg_match('/^localhost/', $_SERVER['HTTP_HOST'])) { // check if not on loc
 }
 
 
-$AIAutoSuggestDebugLogFileName = "";
+$AIAutoSuggestDebugLogFileName = __DIR__ . '/AISuggestErrorLogging.txt';
 $AISuggest_Debug = false;
 
 // test if wordpress debugging is enabled in wp-config.php and set the debug variable on if it is
