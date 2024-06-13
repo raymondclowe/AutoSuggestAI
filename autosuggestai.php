@@ -25,9 +25,12 @@ if (!preg_match('/^localhost/', $_SERVER['HTTP_HOST'])) { // check if not on loc
 $AIAutoSuggestDebugLogFileName = __DIR__ . '/AISuggestErrorLogging.txt';
 $AISuggest_Debug = false;
 
+AISuggestErrorLogging("AutoSuggestAI plugin loaded\n", 3, $AIAutoSuggestDebugLogFileName);
+
 // test if wordpress debugging is enabled in wp-config.php and set the debug variable on if it is
 if (defined('WP_DEBUG') && WP_DEBUG) {
   $AISuggest_Debug = true;
+  AISuggestErrorLogging("WP_DEBUG is defined and set to true - enabling debug\n");
 }
 
 function AISuggestErrorLogging($debugText)
@@ -406,11 +409,18 @@ function autosuggestai_get_suggestion()
 // 
 // allow REST password authentication even with no ssl (so dev environment works)
 
+// AISuggestErrorLogging("About to check server http_host");
+
 
 if (isset($_SERVER['HTTP_HOST'])) {
+  
+  // AISuggestErrorLogging("HTTP_HOST is : " . $_SERVER['HTTP_HOST'] . "\n");
+  
   if (str_starts_with($_SERVER['HTTP_HOST'], 'localhost')) {
-
+    
     $AISuggest_Debug = true;
+
+    AISuggestErrorLogging(" localhost detected - forcing debug mode true\n");
 
     // Where you want to log errors
     $AIAutoSuggestDebugLogFileName = __DIR__ . '/AISuggestErrorLogging.txt';

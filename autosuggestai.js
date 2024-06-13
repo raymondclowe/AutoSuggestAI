@@ -143,8 +143,8 @@ setTimeout(() => {
             'X-WP-Nonce': autosuggestai.api_nonce
         })
     }).then(res => res.json()
-    ).then(data => {
-        aisuggestlog(data);
+    ).then(data => {        
+        
         airesturl = data.airesturl;
         aiApiKey = data.aiapikey;
         // get the integer value of the delay, it will be a string in the json data, so turn to a number
@@ -153,14 +153,15 @@ setTimeout(() => {
         aiInternalProxy = data.aiInternalProxy === "1";
         aimodel = data.aimodel;
         aidebug = data.aidebug;
-
-        if (aidebug === "1") {
+        
+        
+        if (aidebug === true) {
             console.log('AI Debug is on');
-            console.log('API rest URL is ' + airesturl);
-            console.log('API key is ' + aiApiKey);
-            console.log('AI Internal Proxy is' + aiInternalProxy);
-            console.log('AI Delay is ' + AIDelay);
-            console.log('AI Model is ' + aimodel);
+            aisuggestlog('API rest URL is ' + airesturl);
+            aisuggestlog('API key is ' + aiApiKey);
+            aisuggestlog('AI Internal Proxy is' + aiInternalProxy);
+            aisuggestlog('AI Delay is ' + AIDelay);
+            aisuggestlog('AI Model is ' + aimodel);
 
         } else {
             console.log('AI Debug is off');
