@@ -33,7 +33,7 @@ if (defined('WP_DEBUG') && WP_DEBUG) {
 function AISuggestErrorLogging($debugText)
 {
   global $AIAutoSuggestDebugLogFileName;
-  error_log($debugText . "\n", 3, $AIAutoSuggestDebugLogFileName);
+  error_log($debugText . "\n\n", 3, $AIAutoSuggestDebugLogFileName);
 };
 
 function autosuggestai_enqueue_scripts()
@@ -407,14 +407,14 @@ function autosuggestai_get_suggestion()
 // allow REST password authentication even with no ssl (so dev environment works)
 
 
-// if (isset($_SERVER['HTTP_HOST'])) {
-//   if (str_starts_with($_SERVER['HTTP_HOST'], 'localhost')) {
+if (isset($_SERVER['HTTP_HOST'])) {
+  if (str_starts_with($_SERVER['HTTP_HOST'], 'localhost')) {
 
     $AISuggest_Debug = true;
 
     // Where you want to log errors
     $AIAutoSuggestDebugLogFileName = __DIR__ . '/AISuggestErrorLogging.txt';
-    AISuggestErrorLogging("Error message", 3, $AIAutoSuggestDebugLogFileName);
+
 
     ini_set('display_errors', 1);
     ini_set('display_startup_errors', 1);
@@ -423,8 +423,20 @@ function autosuggestai_get_suggestion()
     ini_set('log_errors', 1);
     ini_set('error_log', $AIAutoSuggestDebugLogFileName);
 
+    // Increase logging to maximum
+    error_reporting(E_ALL | E_STRICT);
+    ini_set('error_reporting', E_ALL | E_STRICT);
+    ini_set('log_errors_max_len', 0);
+    ini_set('ignore_repeated_errors', 0);
+    ini_set('ignore_repeated_source', 0);
+    ini_set('html_errors', 0);
+    ini_set('track_errors', 1);
+
+    AISuggestErrorLogging("Logging started at : " . date("Y-m-d H:i:s") );
+
     add_filter('wp_is_application_passwords_available', '__return_true');
-//   }
-// }
+  }
+}
+
 
 ?>
