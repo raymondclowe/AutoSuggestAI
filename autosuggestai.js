@@ -1,4 +1,4 @@
-const Version = "v2.4.7";
+const Version = "v2.4.8";
 
 
 // There are various possible states and need to keep track of them.
