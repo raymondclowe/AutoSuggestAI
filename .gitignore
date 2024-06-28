@@ -2,3 +2,5 @@ temp.js
 error_log.txt
 AISuggestErrorLogging.txt
 .aider*
+venv/
+.venv
