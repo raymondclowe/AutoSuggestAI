@@ -58,15 +58,7 @@ function getBlockText(block) {
 
     if (block.innerBlocks && block.innerBlocks.length > 0) {
         block.innerBlocks.forEach(innerBlock => {
-            if (innerBlock.name === 'core/list-item') {
-                textContent += '* ' + (innerBlock.attributes.content || '') + '\n';
-            } else {
-                if (typeof innerBlock.attributes.content === 'string') {
-                    textContent += innerBlock.attributes.content + '\n';
-                } else if (innerBlock.attributes.content && typeof innerBlock.attributes.content.text === 'string') {
-                    textContent += innerBlock.attributes.content.text + '\n';
-                }
-            }
+            textContent += getBlockText(innerBlock) + '\n';
         });
     } else {
         switch (block.name) {
@@ -76,6 +68,9 @@ function getBlockText(block) {
                 break;
             case 'core/heading':
                 textContent += '# ' + (block.attributes.content || '') + '\n';
+                break;
+            case 'core/list-item':
+                textContent += '* ' + (block.attributes.content || '') + '\n';
                 break;
             case 'core/image':
                 textContent += (block.attributes.alt || '') + ' ' + (block.attributes.caption || '');
