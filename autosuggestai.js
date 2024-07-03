@@ -91,7 +91,7 @@ function getBlockText(block) {
                 }
         }
     }
-    return textContent.trim();
+    return textContent.trim() || ''; // Return empty string if there's no content after trimming
 }
 
 
