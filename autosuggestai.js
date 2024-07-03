@@ -50,49 +50,49 @@ function aisuggestlog(msg) {
 // different ways. this helper function just gets any text from any block, regardless of the type
 // of block.
 function getBlockText(block) {
-    // check what the name of the block is, what type it is.  common types are 'core/paragraph' but others
-    // exist. then try the various ways to get the text from the attributes.content or attributes.content.txt
-    // or attributes.content.raw or attributes.content.value or attributes.content.rendered.
-    textContent = '' // maybe there is nothing here
+    let textContent = ''; // maybe there is nothing here
 
-    if (block.innerBlocks.length > 0) {
+    if (!block || !block.attributes) {
+        return textContent; // Return empty string if block or attributes are undefined
+    }
+
+    if (block.innerBlocks && block.innerBlocks.length > 0) {
         block.innerBlocks.forEach(innerBlock => {
             if (innerBlock.name === 'core/list-item') {
-                textContent += '* ' + innerBlock.attributes.content + '\n';
+                textContent += '* ' + (innerBlock.attributes.content || '') + '\n';
             } else {
-                if (typeof innerBlock.attributes.content == 'string') {
+                if (typeof innerBlock.attributes.content === 'string') {
                     textContent += innerBlock.attributes.content + '\n';
+                } else if (innerBlock.attributes.content && typeof innerBlock.attributes.content.text === 'string') {
+                    textContent += innerBlock.attributes.content.text + '\n';
                 }
-                else if (typeof innerBlock.attributes.content.text == 'string') { textContent += innerBlock.attributes.content.text + '\n'; }
             }
         });
-    } else if (block.name === 'core/paragraph') {
-        // try this, but if it fails, look at the content.text instead
-        // first check if block.attributes.content is a string
-        if (typeof block.attributes.content == 'string') {
-            textContent += block.attributes.content;
+    } else {
+        switch (block.name) {
+            case 'core/paragraph':
+                textContent += typeof block.attributes.content === 'string' ? block.attributes.content : 
+                               (block.attributes.content && block.attributes.content.text) || '';
+                break;
+            case 'core/heading':
+                textContent += '# ' + (block.attributes.content || '') + '\n';
+                break;
+            case 'core/image':
+                textContent += (block.attributes.alt || '') + ' ' + (block.attributes.caption || '');
+                break;
+            case 'maxbuttons/maxbuttons-block':
+                textContent += block.attributes.text || '';
+                break;
+            case 'core/quote':
+                textContent += '> ' + (block.attributes.content || '');
+                break;
+            default:
+                if (block.name !== 'core/post-title' && block.attributes.content) {
+                    textContent += block.attributes.content;
+                }
         }
-        else { textContent += block.attributes.content.text; }
-
-    } else if (block.name === 'core/heading') {
-        textContent += '# ' + block.attributes.content + '\n';
-    } else if (block.name === 'core/image') {
-        let imageText = '';
-        if (block.attributes.alt) {
-            textContent += block.attributes.alt;
-        }
-        if (block.attributes.caption) {
-            textContent += ' ' + block.attributes.caption;
-        }
-        textContent += imageText;
-    } else if (block.name === 'maxbuttons/maxbuttons-block') {
-        textContent += block.attributes.text;
-    } else if (block.name === 'core/quote') {
-        textContent += '> ' + block.attributes.content;
-    } else if (block.name !== 'core/post-title') {
-        textContent += block.attributes.content;
     }
-    return textContent;
+    return textContent.trim();
 }
 
 
