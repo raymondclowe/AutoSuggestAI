@@ -83,7 +83,11 @@ function getBlockText(block) {
                 break;
             default:
                 if (block.name !== 'core/post-title' && block.attributes.content) {
-                    textContent += block.attributes.content;
+                    if (typeof block.attributes.content === 'string') {
+                        textContent += block.attributes.content;
+                    } else if (typeof block.attributes.content === 'object' && block.attributes.content.text) {
+                        textContent += block.attributes.content.text;
+                    }
                 }
         }
     }
