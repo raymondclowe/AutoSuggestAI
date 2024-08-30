@@ -581,14 +581,14 @@ function getContextText() {
 
 function resetIdle(event) {
     // check if it is a button that was clicked
-    console.log("Event:" + event.target.tagName)
+    // console.log("Event:" + event.target.tagName)
     if (event && event.target.tagName === 'I') {
         return;
     }
 
     clearTimeout(idleTimeout);
     idle = false;
-    console.log("Start reset idle")
+    // console.log("Start reset idle")
     // if a suggestion has been made, then reset the text of the block to the original text from the clone
     if (suggestionState === 'inactive-got-suggestion') {
         // nearestPTag.innerHTML = originalNearestPTag.innerHTML;
