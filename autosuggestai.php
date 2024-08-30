@@ -26,10 +26,11 @@ defined('ABSPATH') or die('No script kiddies please!');
 
 
 function autosuggestai_enqueue_scripts(){
+  global $thePrompt; // Access the global variable
   wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.5.0');
   wp_localize_script('autosuggestai', 'autosuggestai', array(
     'api_nonce' => wp_create_nonce('wp_rest'),
-    'promptTemplate' => $thePrompt
+    'promptTemplateTxt' => $thePrompt
   ));
 }
 
@@ -243,13 +244,25 @@ add_action('rest_api_init', function () {
   );
 });
 
+// Declare the global variable
+global $thePrompt;
+
+// Load the prompt template before enqueueing scripts
+function autosuggestai_load_prompt() {
+    global $thePrompt;
+    $thePrompt = file_get_contents(__DIR__ . '/prompt_template.txt');
+}
+add_action('init', 'autosuggestai_load_prompt');
+
 function autosuggestai_get_responseText($title, $context, $existingText, $mistralApiUrl, $aimodel, $aiapikey) {
 
 global $errorLog;
 
+
+global $thePrompt; // Access the global variable
+
 $promptTemplate = "[INST] {prompt} [/INST]"; // <s> only needed for multi turn
 
-$thePrompt = file_get_contents(__DIR__ . '/prompt_template.txt');
 
 
 // error_log("template will be  : " . $promptTemplate . "\n", 3, $errorLog);

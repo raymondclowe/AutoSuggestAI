@@ -158,7 +158,7 @@ setTimeout(() => {
 
 const promptTemplate = `[INST] {prompt} [/INST]`; // <s> only needed for multi turn
 
-const thePrompt = autosuggestai.promptTemplate;
+const thePrompt = autosuggestai.promptTemplateTxt;
 
 // const mistralApiUrl = 'https://api.mistral.ai/v1/chat/completions';
 
@@ -242,7 +242,7 @@ function getSuggestionPromise(title, context, existingText) {
             })
             .then(res => {
                 console.log(res)
-                debugger
+                // debugger
                 if (!res.ok) {
                     throw new Error(res.statusText);
                 }
