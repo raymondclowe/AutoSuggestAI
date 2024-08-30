@@ -25,14 +25,14 @@ defined('ABSPATH') or die('No script kiddies please!');
 // ini_set('error_log', $errorLog);
 
 
-function autosuggestai_enqueue_scripts()
+function autosuggestai_enqueue_scripts() {
   global $thePrompt; // Access the global variable
   wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.6');
   wp_localize_script('autosuggestai', 'autosuggestai', array(
     'api_nonce' => wp_create_nonce('wp_rest'),
     'promptTemplateTxt' => $thePrompt
   ));
-}
+};
 
 add_action('enqueue_block_editor_assets', 'autosuggestai_enqueue_scripts');
 add_action('admin_menu', 'autosuggestai_admin_menu');
