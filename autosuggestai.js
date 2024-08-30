@@ -1,4 +1,5 @@
-const Version = "v2.5.0";
+
+const Version = "v2.5.0-dev";
 
 console.log(Version)
 
@@ -56,7 +57,11 @@ function getBlockText(block) {
                 if (typeof innerBlock.attributes.content == 'string') {
                     textContent += innerBlock.attributes.content + '\n';
                 }
-                else if (typeof innerBlock.attributes.content.text == 'string') { textContent += innerBlock.attributes.content.text + '\n'; }
+                            // Check if the innerBlock has attributes, content, and if content.text is a string
+                            else if (innerBlock.attributes && innerBlock.attributes.content && typeof innerBlock.attributes.content.text === 'string') {
+                                // If all conditions are met, add the content.text to textContent with a newline
+                                textContent += innerBlock.attributes.content.text + '\n';
+                            }
             }
         });
     } else if (block.name === 'core/paragraph') {
