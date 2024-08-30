@@ -1,4 +1,4 @@
-const Version = "v2.4.5.1";
+const Version = "v2.6";
 
 console.log(Version)
 
@@ -162,35 +162,7 @@ setTimeout(() => {
 
 const promptTemplate = `[INST] {prompt} [/INST]`; // <s> only needed for multi turn
 
-const thePrompt = `
-You are an automated writing assistant who will suggest the next piece of text to write after an example given to you. The suggested text you provide will always be brief, meaningful, sensible, in keeping with the style of the example. You will be given the title of the piece of writing, one or more preceding paragraphs, and the incomplete paragraph that needs extending. The place to add text will be marked with three dots like this ...
-
-
-Examples:
-
-If you are given the text "The cat sat on the ... " then you will reply "mat."
-If you are given the text "The rain in Spain falls ... " then you will reply with "mainly on the plain. In Hertford, Hereford, and Hampshire, hurricanes hardly ever happen.".
-If you are given the text "The sun rises in the east ... " then you will reply with "and sets in the west".
-If you are given the text "The dog ... " then you will reply with "barks, and the cat meows".
-If you are given the text "Four score and seven years ago ... " then you will reply with "our fathers brought forth, upon this continent, a new nation".
-
-
-You will return only the suggested extention of the text, without including the original incomplete paragraph.
-
-
-Here is the title of the piece of writing:
-
-{title}
-
-
-Here are the preceding paragraphs for context:
-
-{context}
-
-
-Here is the text to be extended:
-
-{text}`;
+const thePrompt = autosuggestai.promptTemplateTxt;
 
 // const mistralApiUrl = 'https://api.mistral.ai/v1/chat/completions';
 
@@ -274,7 +246,7 @@ function getSuggestionPromise(title, context, existingText) {
             })
             .then(res => {
                 console.log(res)
-                debugger
+                // debugger
                 if (!res.ok) {
                     throw new Error(res.statusText);
                 }
