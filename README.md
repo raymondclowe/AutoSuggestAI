@@ -54,6 +54,12 @@ Suggested text appear in grey and are not actually part of the post until you pr
 
 You only get suggestions when your cursor is at the end of a paragraph, and the last character is a space meaning you have completed a word, or you are at the beginning of a blank paragraph.
 
+### Centralized prompt for extra instructions
+
+The file `prompt_template.txt` contains the main prompt, you can add text to here.
+
+For example if you add `Your instructions are in English but make your suggestions in French`, or `Always use 8th grade reading level vocabulary` it will work. Of course this file will be overwritten by new versions so save any changes you make somewhere else
+
 ## Bugs
 
 - If you click somewhere else when a grey suggestion is visible it may end up stuck on the screen, and become an invalid block later.
