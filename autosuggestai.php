@@ -218,14 +218,23 @@ add_action('rest_api_init', function () {
 
 // API key callback  
 
+// Function to get the AutoSuggestAI configuration
 function autosuggestai_get_config()
 {
+  // Return an array of configuration options
   return array(
+    // URL for the AI REST API
     'airesturl' => htmlspecialchars(get_option('airesturl')),
+    // API key for authentication
     'aiapikey' => htmlspecialchars(get_option('aiapikey')),
+    // Internal proxy settings for the AI
     'aiInternalProxy' => htmlspecialchars(get_option('aiInternalProxy')),
+    // Delay setting for AI responses
     'AIDelay' => htmlspecialchars(get_option('AIDelay')),
+    // AI model to be used
     'aimodel' => htmlspecialchars(get_option('aimodel')),
+    // AI style guide setting
+    'aistyleguide' => htmlspecialchars(get_option('aistyleguide')),
   );
 }
 
@@ -380,3 +389,27 @@ if ( $_SERVER['HTTP_HOST'] === 'localhost' ) {
 
 
 ?>
+
+register_setting('autosuggestai_options', 'aistyleguide', array(
+    'type' => 'string',
+    'sanitize_callback' => 'sanitize_textarea_field',
+    'default' => 'Write in a clear, concise manner. Use simple language and avoid jargon.',
+));
+
+add_settings_field(
+    'aistyleguide',
+    'AI Style Guide',
+    'autosuggestai_styleguide_callback',
+    'autosuggestai',
+    'autosuggestai_main'
+);
+
+function autosuggestai_styleguide_callback()
+{
+    $value = get_option('aistyleguide');
+    echo '<textarea id="aistyleguide" name="aistyleguide" rows="4" cols="50">' . esc_textarea($value) . '</textarea>';
+    echo '<div style="max-width: 500px; margin-top: 5px;"><i>';
+    echo 'Provide writing instructions for the AI to follow when generating suggestions. ';
+    echo 'For example: "Write in a formal tone, use technical language, and focus on scientific accuracy."';
+    echo '</i></div>';
+}
