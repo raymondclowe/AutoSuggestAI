@@ -25,7 +25,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 // ini_set('error_log', $errorLog);
 
 
-function autosuggestai_enqueue_scripts(){
+function autosuggestai_enqueue_scripts()
   global $thePrompt; // Access the global variable
   wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.6');
   wp_localize_script('autosuggestai', 'autosuggestai', array(
