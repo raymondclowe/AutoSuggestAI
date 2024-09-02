@@ -1,5 +1,4 @@
 <?php
-// $errorLog = __DIR__ . '/error_log.txt';
 /**
  * Plugin Name: AutoSuggestAI
  * Plugin URI: https://github.com/raymondclowe/AutoSuggestAI
@@ -245,9 +244,6 @@ add_action('init', 'autosuggestai_load_prompt');
 
 function autosuggestai_get_responseText($title, $context, $existingText, $mistralApiUrl, $aimodel, $aiapikey) {
 
-global $errorLog;
-
-
 global $thePrompt; // Access the global variable
 
 $promptTemplate = "[INST] {prompt} [/INST]"; // <s> only needed for multi turn
@@ -287,17 +283,14 @@ $promptTemplate = "[INST] {prompt} [/INST]"; // <s> only needed for multi turn
 
   if ( is_wp_error( $response ) ) {  
     $error_code = $response->get_error_code();
-    error_log("Error: ". $error_code. "\n", 3, $errorLog);
     $error_message = $response->get_error_message();
     $status_code = $response->get_error_data('http_code');
-
     // assemble errors into a sensible string and return it
     $error_string = "Error code: ". $error_code. " - ". $error_message. " - Status code: ". $status_code;
     return $error_string;    
   }
   
   $data = json_decode(wp_remote_retrieve_body($response), true);
-//  error_log("Response: " . wp_remote_retrieve_body($response) . "\n", 3, $errorLog);
   $responseText = trim($data['choices'][0]['message']['content']);
 
   if (strpos($responseText, $existingText) === 0) {
