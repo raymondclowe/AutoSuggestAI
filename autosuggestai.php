@@ -13,17 +13,6 @@
 
 defined('ABSPATH') or die('No script kiddies please!');
 
-// Where you want to log errors
-// error_log("Error message", 3, $errorLog);
-
-// ini_set('display_errors', 1);
-// ini_set('display_startup_errors', 1);
-// error_reporting(E_ALL);
-
-// error_reporting(E_ALL);
-// ini_set('log_errors', 1);
-// ini_set('error_log', $errorLog);
-
 
 function autosuggestai_enqueue_scripts() {
   global $thePrompt; // Access the global variable
@@ -263,16 +252,6 @@ global $thePrompt; // Access the global variable
 
 $promptTemplate = "[INST] {prompt} [/INST]"; // <s> only needed for multi turn
 
-
-
-// error_log("template will be  : " . $promptTemplate . "\n", 3, $errorLog);
-
-
-
-  
-//   error_log("Starting: autosuggestai_get_responseText\n", 3, $errorLog);
-//   error_log("prompt is : " . $promptTemplate. "\n", 3, $errorLog);
-
   // Create prompt
   $instruction = str_replace('{title}', $title, $thePrompt);
   $instruction = str_replace('{context}', $context, $instruction); 
@@ -280,11 +259,6 @@ $promptTemplate = "[INST] {prompt} [/INST]"; // <s> only needed for multi turn
 
   $messageContent = str_replace('{prompt}', $instruction, $promptTemplate);
 
-// error_log("Key will be : " . $aiapikey. "\n", 3, $errorLog);
-// error_log("Message will be  : " . $messageContent. "\n", 3, $errorLog);
-// error_log("instruction will be  : " . $instruction. "\n", 3, $errorLog);
-
-  // $mistralApiUrl = "dummy";
   // Make API request
   $response = wp_remote_post($mistralApiUrl, array(
     'method' => 'POST',
@@ -355,8 +329,6 @@ function autosuggestai_get_suggestion()
   return  $responseText;
 }
 
-// test with curl
-// 
 // allow REST password authentication even with no ssl (so dev environment works)
 if ( $_SERVER['HTTP_HOST'] === 'localhost' ) {
   add_filter( 'wp_is_application_passwords_available', '__return_true' ); 
