@@ -619,6 +619,36 @@ window.addEventListener('mousedown', resetIdle);
 window.addEventListener('click', resetIdle);
 window.addEventListener('blur', resetIdle);
 
+
+document.addEventListener('keydown', (event) => {
+    if (event.ctrlKey && event.shiftKey && event.key === 'S') {
+        event.preventDefault(); // Prevent default browser behavior
+        triggerSuggestion();
+    }
+});
+
+// Function to handle triggering the suggestion
+function triggerSuggestion() {
+    console.log("Suggestion triggered by hotkey");
+    thinkingIndicator('show');
+
+    const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
+    if (!currentBlock || currentBlock.name !== 'core/paragraph') {
+        console.log("Not a valid block for suggestion");
+        thinkingIndicator('hide');
+        return;
+    }
+
+    let contextText = getContextText();
+    let currentBlockText = getBlockText(currentBlock);
+    const title = wp.data.select("core/editor").getEditedPostAttribute('title');
+
+    const suggestionTextPromise = getSuggestionPromise(title, contextText, currentBlockText);
+    suggestionState = 'inactive-asked-for-suggestion';
+    suggestionTextPromise.then(handleSuggestion);
+}
+
+
 // inject font awesome into head
 const link = document.createElement('link');
 link.rel = 'stylesheet';
