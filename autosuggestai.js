@@ -1,4 +1,4 @@
-const Version = "v2.6.1";
+const Version = "v2.6.2";
 
 console.log(Version)
 
@@ -356,7 +356,7 @@ function insertTextIntoCurrentBlock(text) {
                     const newBlock = wp.blocks.createBlock('core/paragraph', {
                         content: "<i>" + parts[i].trim() + "</i>"
                     });
-                    wp.data.dispatch('core/block-editor').insertBlock(newBlock, currentBlockIndex + i);
+                    wp.data.dispatch('core/block-editor').insertBlock(newBlock, currentBlockIndex + i - 1);
                     prevBlockId = newBlock.clientId;
                     suggestedBlockIDs.push(prevBlockId);
                 }
