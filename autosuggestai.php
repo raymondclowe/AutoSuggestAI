@@ -181,10 +181,10 @@ function autosuggestai_aimodel_callback()
   echo '<input type="text" name="aimodel" id="aimodel" value="' . $value . '">';
   echo '<div style="max-width: 500px; margin-top: 5px;">';
   echo '<i>Common models: ';
-  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'gpt-3.5-turbo\';">gpt-3.5-turbo</a>, ';
-  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'gpt-4o\';">gpt-4o</a>, ';
-  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'open-mistral-7b\';">open-mistral-7b</a>, ';
-  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'llama-2\';">llama-2</a>. ';
+  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'gpt-4o\';">gpt-4o (Recommended: for OpenAI)</a>, ';
+  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'open-mistral-7b\';">open-mistral-7b (for Mistral)</a>, ';
+  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'qwen/qwen-2.5-72b-instruct\';">qwen/qwen-2.5-72b-instruct (for OpenRouter)</a>, ';  
+  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'llama-3.1-70b-versatile\';">llama-3.1-70b-versatile (for Groq)</a>. ';
   echo '<p>For a full list, see each provider. </p>';
   echo '<ul>';
   echo '<li>Openrouter.ai: <a href="https://openrouter.ai/docs#models" target="_blank">https://openrouter.ai/docs#models</a> &#x2197;</li>';
