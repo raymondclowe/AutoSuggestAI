@@ -275,6 +275,7 @@ function getSuggestionPromise(title, context, existingText) {
 let idle = false;
 let idleTimeout;
 let suggestionState = 'active';
+let suggestionHotkeyActive = false;
 let suggestionText;
 
 
@@ -456,9 +457,11 @@ async function moveCursorToEnd() {
 
 
 function handleSuggestion(text) {
-    console.log("Got some suggestion: " + text)
+    console.log("Got some suggestion: " + text);
+    console.log("SuggestionState = " + suggestionState);
     // check if the state is still inactive asked for suggestion, as the user may have typed and so it will be active now. if it is the wrong status then we need to exit/return and give up on the suggestion.
-    if (suggestionState !== 'inactive-asked-for-suggestion') {
+    if (suggestionState !== 'inactive-asked-for-suggestion' && 
+        suggestionHotkeyActive === false ) { // to get a suggestion we need either to be inactive or have manually hotkey requested it
         console.log("Suggestion state is wrong, so we are giving up on the suggestion")
         return;
     }
@@ -490,6 +493,8 @@ function handleSuggestion(text) {
 
     currentBlockId = wp.data.select('core/block-editor').getSelectedBlock().clientId;
     insertTextIntoCurrentBlock(suggestionText)
+
+    suggestionHotkeyActive = false; // resetting this flag
 
     setTimeout(function () {
         moveCursorTo(oldContent.length);
@@ -627,9 +632,10 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
-// Function to handle triggering the suggestion
+// Function to handle triggering the suggestion with the hotkey
 function triggerSuggestion() {
     console.log("Suggestion triggered by hotkey");
+    suggestionHotkeyActive = true;
     thinkingIndicator('show');
 
     const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
