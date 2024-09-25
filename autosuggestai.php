@@ -112,19 +112,20 @@ function autosuggestai_admin_init()
     'autosuggestai_main'
   );
   add_settings_field(
+    'aistyleguide',
+    'Style Guide',
+    'autosuggestai_aistyleguide_callback',
+    'autosuggestai',
+    'autosuggestai_main'
+  );
+  add_settings_field(
     'ainotes',
     'AI Notes',
     'autosuggestai_ainotes_callback',
     'autosuggestai',
     'autosuggestai_main'
   );
-  add_settings_field(
-  'aistyleguide',
-  'Style Guide',
-  'autosuggestai_aistyleguide_callback',
-  'autosuggestai',
-  'autosuggestai_main'
-);
+
 
 }
 
