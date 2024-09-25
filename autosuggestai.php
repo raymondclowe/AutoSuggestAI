@@ -216,7 +216,7 @@ function autosuggestai_aistyleguide_callback()
 {
   $value = get_option('aistyleguide');
   echo '<div style="max-width: 500px;">';
-  wp_editor($value, 'aistyleguide', array('textarea_name' => 'aistyleguide'));
+  echo '<textarea name="aistyleguide" rows="10" style="width: 100%;">' . esc_textarea($value) . '</textarea>';
   echo '</div>';
   echo '<div style="max-width: 500px; margin-top: 5px;">';
   echo '<i>Enter your style guide instructions here. This will be used to guide the AI suggestions.</i>';
