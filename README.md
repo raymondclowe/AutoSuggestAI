@@ -54,11 +54,23 @@ Suggested text appear in grey and are not actually part of the post until you pr
 
 You only get suggestions when your cursor is at the end of a paragraph, and the last character is a space meaning you have completed a word, or you are at the beginning of a blank paragraph.
 
+### Manual hotkey
+
+If you prefer to manually trigger a suggestion instead of waiting for a timeout then press `Shift-Ctrl-S`. To use only manual suggestions then set the timeout value to 99999 to avoid
+it ever triggering.
+
 ### Centralized prompt for extra instructions
 
-The file `prompt_template.txt` contains the main prompt, you can add text to here.
+The file `prompt_template.txt` contains the main prompt, you can add text to here but it will be overwritten when the plugin is updated.
 
-For example if you add `Your instructions are in English but make your suggestions in French`, or `Always use 8th grade reading level vocabulary` it will work. Of course this file will be overwritten by new versions so save any changes you make somewhere else
+However in the admin settings page there is a "Style Guide" field and you can use this to give extra instructions.
+
+For example if you add `Your instructions are in English but make your suggestions in French`, or `Always use 8th grade reading level vocabulary` it will work. 
+
+The best way to use this is to keep your responses at the correct level and style as your existing writing. To create a good style guide use any AI of your choice and give it a good article of yours that you like, then ask it to make a style guide from it using this prompt:
+
+> I need you to write a one paragraph "style guide" to how to write so it comes out like this. Reading level, use of pronouns, voice, things like that.
+
 
 ## Bugs
 
@@ -66,13 +78,14 @@ For example if you add `Your instructions are in English but make your suggestio
 
 - Sometimes it makes multiple suggestions and you have to clean them up manually
 
-- If the suggestion is mutli-paragraph it duplicates paragraphs and you have to clean up manually
-
 - After tab to accept the text the cursor fails to move to the end of the paragraph and you have to click to get it back
+
+- Up arrow while a suggestion in offered doesn't dismiss the way it should
 
 ## Done
 
  - Add support for other providers, not just Mistral
+ 
 
 ## Todo
 
