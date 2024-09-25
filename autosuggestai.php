@@ -26,13 +26,15 @@ defined('ABSPATH') or die('No script kiddies please!');
 
 
 function autosuggestai_enqueue_scripts() {
-  global $thePrompt; // Access the global variable
+  global $thePrompt;
+  $styleGuide = get_option('aistyleguide'); // Set the $styleGuide variable
   wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.6.2');
   wp_localize_script('autosuggestai', 'autosuggestai', array(
     'api_nonce' => wp_create_nonce('wp_rest'),
-    'promptTemplateTxt' => $thePrompt
+    'promptTemplateTxt' => $thePrompt,
+    'styleGuide' => $styleGuide
   ));
-};
+}
 
 add_action('enqueue_block_editor_assets', 'autosuggestai_enqueue_scripts');
 add_action('admin_menu', 'autosuggestai_admin_menu');
@@ -66,7 +68,7 @@ function autosuggestai_admin_init()
   register_setting('autosuggestai_options', 'AIDelay', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field','default' => 5,));
   register_setting('autosuggestai_options', 'aimodel', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'mistral-tiny', ) );
   register_setting('autosuggestai_options', 'ainotes', array('type' => 'string', 'sanitize_callback' => 'wp_kses_post'));
-
+  register_setting('autosuggestai_options', 'aistyleguide', array('type' => 'string', 'sanitize_callback' => 'wp_kses_post'));
 
   add_settings_section(
     'autosuggestai_main',
@@ -116,6 +118,13 @@ function autosuggestai_admin_init()
     'autosuggestai',
     'autosuggestai_main'
   );
+  add_settings_field(
+  'aistyleguide',
+  'Style Guide',
+  'autosuggestai_aistyleguide_callback',
+  'autosuggestai',
+  'autosuggestai_main'
+);
 
 }
 
@@ -202,6 +211,17 @@ function autosuggestai_ainotes_callback()
 
 }
 
+function autosuggestai_aistyleguide_callback()
+{
+  $value = get_option('aistyleguide');
+  echo '<div style="max-width: 500px;">';
+  wp_editor($value, 'aistyleguide', array('textarea_name' => 'aistyleguide'));
+  echo '</div>';
+  echo '<div style="max-width: 500px; margin-top: 5px;">';
+  echo '<i>Enter your style guide instructions here. This will be used to guide the AI suggestions.</i>';
+  echo '</div>';
+}
+
 
 // Add REST API route
 // curl http://localhost:8881/index.php?rest_route=/autosuggestai/v1/config
@@ -227,6 +247,7 @@ function autosuggestai_get_config()
     'aiInternalProxy' => htmlspecialchars(get_option('aiInternalProxy')),
     'AIDelay' => htmlspecialchars(get_option('AIDelay')),
     'aimodel' => htmlspecialchars(get_option('aimodel')),
+    'aistyleguide' => wp_kses_post(get_option('aistyleguide')),
   );
 }
 
@@ -251,6 +272,8 @@ global $thePrompt;
 function autosuggestai_load_prompt() {
     global $thePrompt;
     $thePrompt = file_get_contents(__DIR__ . '/prompt_template.txt');
+    $styleGuide = get_option('aistyleguide');
+    $thePrompt = str_replace('{style-guide}', $styleGuide, $thePrompt);
 }
 add_action('init', 'autosuggestai_load_prompt');
 
