@@ -172,10 +172,11 @@ function autosuggestai_AIDelay_callback()
   $value = get_option('AIDelay');
   echo '<input type="text" id="AIDelay" name="AIDelay" value="' . esc_attr($value) . '" size="40" />';
   echo '<div style="max-width: 500px; margin-top: 5px;">';
-  echo ' <a href="#" onclick="document.getElementById(\'AIDelay\').value = 5; return false;">Set to default (5)</a>';
-  echo '</div>';
+  echo ' <a href="#" onclick="document.getElementById(\'AIDelay\').value = 5; return false;">Set to default (5)</a> / ';
+  echo ' <a href="#" onclick="document.getElementById(\'AIDelay\').value = 99999; return false;">Disable</a>  ';
+  echo '<p>You can always use Shift-Ctrl-S to get a suggestion at any time, provided the cursor is on a new line, or at the end of a paragraph block with a space at the end.</p>';
 }
-
+  
 function autosuggestai_aimodel_callback()
 {
   $value = get_option('aimodel');
@@ -198,6 +199,18 @@ function autosuggestai_aimodel_callback()
   echo '</i></div>';
 }
 
+function autosuggestai_aistyleguide_callback()
+{
+  $value = get_option('aistyleguide');
+  echo '<div style="max-width: 500px;">';
+  echo '<textarea name="aistyleguide" rows="10" style="width: 100%;">' . esc_textarea($value) . '</textarea>';
+  echo '</div>';
+  echo '<div style="max-width: 500px; margin-top: 5px;">';
+  echo '<i>Enter your style guide instructions here. This will be used to guide the AI suggestions. Create your style guide by asking any AI to make a one paragraph style guide description of your existing text. Give the example then say "I need you to write a one paragraph "style guide" to how to write so it comes out like this. Reading level, use of pronouns, voice, things like that"</i>';
+  echo '</div>';
+}
+
+
 function autosuggestai_ainotes_callback()
 {
   $value = get_option('ainotes');
@@ -212,16 +225,6 @@ function autosuggestai_ainotes_callback()
 
 }
 
-function autosuggestai_aistyleguide_callback()
-{
-  $value = get_option('aistyleguide');
-  echo '<div style="max-width: 500px;">';
-  echo '<textarea name="aistyleguide" rows="10" style="width: 100%;">' . esc_textarea($value) . '</textarea>';
-  echo '</div>';
-  echo '<div style="max-width: 500px; margin-top: 5px;">';
-  echo '<i>Enter your style guide instructions here. This will be used to guide the AI suggestions.</i>';
-  echo '</div>';
-}
 
 
 // Add REST API route
