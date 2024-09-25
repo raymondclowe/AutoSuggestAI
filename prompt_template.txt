@@ -12,6 +12,7 @@ If you are given the text "Four score and seven years ago ... " then you will re
 
 You will return only the suggested extention of the text, without including the original incomplete paragraph.
 
+{style-guide}
 
 Here is the title of the piece of writing:
 

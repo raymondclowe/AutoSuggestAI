@@ -1,4 +1,4 @@
-const Version = "v2.6.2";
+const Version = "v2.7.0";
 
 console.log(Version)
 
@@ -258,7 +258,10 @@ function getSuggestionPromise(title, context, existingText) {
                     // check if the responseText starts with the existingText, and if so trim it off
                     if (responseText.startsWith(existingText.trim())) {
                         responseText = responseText.substr(existingText.trim().length);
-                    }
+                    };
+                    if (responseText.trim().startsWith('...')) {
+                        responseText = responseText.trim().substr(3);
+                    };
                     resolve(responseText);
                 })
                 .catch(err => {
@@ -275,6 +278,7 @@ function getSuggestionPromise(title, context, existingText) {
 let idle = false;
 let idleTimeout;
 let suggestionState = 'active';
+let suggestionHotkeyActive = false;
 let suggestionText;
 
 
@@ -456,9 +460,11 @@ async function moveCursorToEnd() {
 
 
 function handleSuggestion(text) {
-    console.log("Got some suggestion: " + text)
+    console.log("Got some suggestion: " + text);
+    console.log("SuggestionState = " + suggestionState);
     // check if the state is still inactive asked for suggestion, as the user may have typed and so it will be active now. if it is the wrong status then we need to exit/return and give up on the suggestion.
-    if (suggestionState !== 'inactive-asked-for-suggestion') {
+    if (suggestionState !== 'inactive-asked-for-suggestion' && 
+        suggestionHotkeyActive === false ) { // to get a suggestion we need either to be inactive or have manually hotkey requested it
         console.log("Suggestion state is wrong, so we are giving up on the suggestion")
         return;
     }
@@ -490,6 +496,8 @@ function handleSuggestion(text) {
 
     currentBlockId = wp.data.select('core/block-editor').getSelectedBlock().clientId;
     insertTextIntoCurrentBlock(suggestionText)
+
+    suggestionHotkeyActive = false; // resetting this flag
 
     setTimeout(function () {
         moveCursorTo(oldContent.length);
@@ -618,6 +626,37 @@ window.addEventListener('scroll', resetIdle);
 window.addEventListener('mousedown', resetIdle);
 window.addEventListener('click', resetIdle);
 window.addEventListener('blur', resetIdle);
+
+
+document.addEventListener('keydown', (event) => {
+    if (event.ctrlKey && event.shiftKey && event.key === 'S') {
+        event.preventDefault(); // Prevent default browser behavior
+        triggerSuggestion();
+    }
+});
+
+// Function to handle triggering the suggestion with the hotkey
+function triggerSuggestion() {
+    console.log("Suggestion triggered by hotkey");
+    suggestionHotkeyActive = true;
+    thinkingIndicator('show');
+
+    const currentBlock = wp.data.select('core/block-editor').getSelectedBlock();
+    if (!currentBlock || currentBlock.name !== 'core/paragraph') {
+        console.log("Not a valid block for suggestion");
+        thinkingIndicator('hide');
+        return;
+    }
+
+    let contextText = getContextText();
+    let currentBlockText = getBlockText(currentBlock);
+    const title = wp.data.select("core/editor").getEditedPostAttribute('title');
+
+    const suggestionTextPromise = getSuggestionPromise(title, contextText, currentBlockText);
+    suggestionState = 'inactive-asked-for-suggestion';
+    suggestionTextPromise.then(handleSuggestion);
+}
+
 
 // inject font awesome into head
 const link = document.createElement('link');

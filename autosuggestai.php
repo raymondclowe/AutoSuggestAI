@@ -4,7 +4,7 @@
  * Plugin Name: AutoSuggestAI
  * Plugin URI: https://github.com/raymondclowe/AutoSuggestAI
  * Description: Auto suggest text in the block editor using AI
- * Version: v2.6.2
+ * Version: v2.7.0
  * Author: Raymond Lowe 
  * Author URI: https://github.com/raymondclowe/
  * Text Domain: AutoSuggestAI
@@ -26,13 +26,15 @@ defined('ABSPATH') or die('No script kiddies please!');
 
 
 function autosuggestai_enqueue_scripts() {
-  global $thePrompt; // Access the global variable
-  wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.6.2');
+  global $thePrompt;
+  $styleGuide = get_option('aistyleguide'); // Set the $styleGuide variable
+  wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.7.0');
   wp_localize_script('autosuggestai', 'autosuggestai', array(
     'api_nonce' => wp_create_nonce('wp_rest'),
-    'promptTemplateTxt' => $thePrompt
+    'promptTemplateTxt' => $thePrompt,
+    'styleGuide' => $styleGuide
   ));
-};
+}
 
 add_action('enqueue_block_editor_assets', 'autosuggestai_enqueue_scripts');
 add_action('admin_menu', 'autosuggestai_admin_menu');
@@ -66,7 +68,7 @@ function autosuggestai_admin_init()
   register_setting('autosuggestai_options', 'AIDelay', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field','default' => 5,));
   register_setting('autosuggestai_options', 'aimodel', array('type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'mistral-tiny', ) );
   register_setting('autosuggestai_options', 'ainotes', array('type' => 'string', 'sanitize_callback' => 'wp_kses_post'));
-
+  register_setting('autosuggestai_options', 'aistyleguide', array('type' => 'string', 'sanitize_callback' => 'wp_kses_post'));
 
   add_settings_section(
     'autosuggestai_main',
@@ -110,12 +112,20 @@ function autosuggestai_admin_init()
     'autosuggestai_main'
   );
   add_settings_field(
+    'aistyleguide',
+    'Style Guide',
+    'autosuggestai_aistyleguide_callback',
+    'autosuggestai',
+    'autosuggestai_main'
+  );
+  add_settings_field(
     'ainotes',
     'AI Notes',
     'autosuggestai_ainotes_callback',
     'autosuggestai',
     'autosuggestai_main'
   );
+
 
 }
 
@@ -162,20 +172,21 @@ function autosuggestai_AIDelay_callback()
   $value = get_option('AIDelay');
   echo '<input type="text" id="AIDelay" name="AIDelay" value="' . esc_attr($value) . '" size="40" />';
   echo '<div style="max-width: 500px; margin-top: 5px;">';
-  echo ' <a href="#" onclick="document.getElementById(\'AIDelay\').value = 5; return false;">Set to default (5)</a>';
-  echo '</div>';
+  echo ' <a href="#" onclick="document.getElementById(\'AIDelay\').value = 5; return false;">Set to default (5)</a> / ';
+  echo ' <a href="#" onclick="document.getElementById(\'AIDelay\').value = 99999; return false;">Disable</a>  ';
+  echo '<p>You can always use Shift-Ctrl-S to get a suggestion at any time, provided the cursor is on a new line, or at the end of a paragraph block with a space at the end.</p>';
 }
-
+  
 function autosuggestai_aimodel_callback()
 {
   $value = get_option('aimodel');
   echo '<input type="text" name="aimodel" id="aimodel" value="' . $value . '">';
   echo '<div style="max-width: 500px; margin-top: 5px;">';
   echo '<i>Common models: ';
-  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'gpt-3.5-turbo\';">gpt-3.5-turbo</a>, ';
-  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'gpt-4o\';">gpt-4o</a>, ';
-  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'open-mistral-7b\';">open-mistral-7b</a>, ';
-  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'llama-2\';">llama-2</a>. ';
+  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'gpt-4o\';">gpt-4o (Recommended: for OpenAI)</a>, ';
+  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'open-mistral-7b\';">open-mistral-7b (for Mistral)</a>, ';
+  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'qwen/qwen-2.5-72b-instruct\';">qwen/qwen-2.5-72b-instruct (for OpenRouter)</a>, ';  
+  echo '<a href="#" onclick="document.getElementById(\'aimodel\').value = \'llama-3.1-70b-versatile\';">llama-3.1-70b-versatile (for Groq)</a>. ';
   echo '<p>For a full list, see each provider. </p>';
   echo '<ul>';
   echo '<li>Openrouter.ai: <a href="https://openrouter.ai/docs#models" target="_blank">https://openrouter.ai/docs#models</a> &#x2197;</li>';
@@ -187,6 +198,18 @@ function autosuggestai_aimodel_callback()
 
   echo '</i></div>';
 }
+
+function autosuggestai_aistyleguide_callback()
+{
+  $value = get_option('aistyleguide');
+  echo '<div style="max-width: 500px;">';
+  echo '<textarea name="aistyleguide" rows="10" style="width: 100%;">' . esc_textarea($value) . '</textarea>';
+  echo '</div>';
+  echo '<div style="max-width: 500px; margin-top: 5px;">';
+  echo '<i>Enter your style guide instructions here. This will be used to guide the AI suggestions. Create your style guide by asking any AI to make a one paragraph style guide description of your existing text. Give the example then say "I need you to write a one paragraph "style guide" to how to write so it comes out like this. Reading level, use of pronouns, voice, things like that"</i>';
+  echo '</div>';
+}
+
 
 function autosuggestai_ainotes_callback()
 {
@@ -201,6 +224,7 @@ function autosuggestai_ainotes_callback()
   echo '</div>';
 
 }
+
 
 
 // Add REST API route
@@ -227,6 +251,7 @@ function autosuggestai_get_config()
     'aiInternalProxy' => htmlspecialchars(get_option('aiInternalProxy')),
     'AIDelay' => htmlspecialchars(get_option('AIDelay')),
     'aimodel' => htmlspecialchars(get_option('aimodel')),
+    'aistyleguide' => htmlspecialchars(get_option('aistyleguide')),
   );
 }
 
@@ -251,6 +276,8 @@ global $thePrompt;
 function autosuggestai_load_prompt() {
     global $thePrompt;
     $thePrompt = file_get_contents(__DIR__ . '/prompt_template.txt');
+    $styleGuide = get_option('aistyleguide');
+    $thePrompt = str_replace('{style-guide}', $styleGuide, $thePrompt);
 }
 add_action('init', 'autosuggestai_load_prompt');
 
