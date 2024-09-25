@@ -258,7 +258,10 @@ function getSuggestionPromise(title, context, existingText) {
                     // check if the responseText starts with the existingText, and if so trim it off
                     if (responseText.startsWith(existingText.trim())) {
                         responseText = responseText.substr(existingText.trim().length);
-                    }
+                    };
+                    if (responseText.trim().startsWith('...')) {
+                        responseText = responseText.trim().substr(3);
+                    };
                     resolve(responseText);
                 })
                 .catch(err => {
