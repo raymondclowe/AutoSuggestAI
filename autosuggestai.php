@@ -248,7 +248,7 @@ function autosuggestai_get_config()
     'aiInternalProxy' => htmlspecialchars(get_option('aiInternalProxy')),
     'AIDelay' => htmlspecialchars(get_option('AIDelay')),
     'aimodel' => htmlspecialchars(get_option('aimodel')),
-    'aistyleguide' => wp_kses_post(get_option('aistyleguide')),
+    'aistyleguide' => htmlspecialchars(get_option('aistyleguide')),
   );
 }
 
