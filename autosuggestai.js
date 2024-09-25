@@ -1,4 +1,4 @@
-const Version = "v2.7.0";
+const Version = "v2.7.1";
 
 console.log(Version)
 
@@ -629,7 +629,7 @@ window.addEventListener('blur', resetIdle);
 
 
 document.addEventListener('keydown', (event) => {
-    if (event.ctrlKey && event.shiftKey && event.key === 'S') {
+    if (event.altKey && event.shiftKey && event.key === 'S') {
         event.preventDefault(); // Prevent default browser behavior
         triggerSuggestion();
     }

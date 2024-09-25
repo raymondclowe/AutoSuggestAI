@@ -4,7 +4,7 @@
  * Plugin Name: AutoSuggestAI
  * Plugin URI: https://github.com/raymondclowe/AutoSuggestAI
  * Description: Auto suggest text in the block editor using AI
- * Version: v2.7.0
+ * Version: v2.7.1
  * Author: Raymond Lowe 
  * Author URI: https://github.com/raymondclowe/
  * Text Domain: AutoSuggestAI
@@ -28,7 +28,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 function autosuggestai_enqueue_scripts() {
   global $thePrompt;
   $styleGuide = get_option('aistyleguide'); // Set the $styleGuide variable
-  wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.7.0');
+  wp_enqueue_script('autosuggestai', plugins_url('autosuggestai.js', __FILE__), array(), 'v2.7.1');
   wp_localize_script('autosuggestai', 'autosuggestai', array(
     'api_nonce' => wp_create_nonce('wp_rest'),
     'promptTemplateTxt' => $thePrompt,
@@ -174,7 +174,7 @@ function autosuggestai_AIDelay_callback()
   echo '<div style="max-width: 500px; margin-top: 5px;">';
   echo ' <a href="#" onclick="document.getElementById(\'AIDelay\').value = 5; return false;">Set to default (5)</a> / ';
   echo ' <a href="#" onclick="document.getElementById(\'AIDelay\').value = 99999; return false;">Disable</a>  ';
-  echo '<p>You can always use Shift-Ctrl-S to get a suggestion at any time, provided the cursor is on a new line, or at the end of a paragraph block with a space at the end.</p>';
+  echo '<p>You can always use Shift-Alt-S to get a suggestion at any time, provided the cursor is on a new line, or at the end of a paragraph block with a space at the end.</p>';
 }
   
 function autosuggestai_aimodel_callback()

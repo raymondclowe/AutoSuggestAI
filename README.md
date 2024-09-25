@@ -56,7 +56,7 @@ You only get suggestions when your cursor is at the end of a paragraph, and the 
 
 ### Manual hotkey
 
-If you prefer to manually trigger a suggestion instead of waiting for a timeout then press `Shift-Ctrl-S`. To use only manual suggestions then set the timeout value to 99999 to avoid
+If you prefer to manually trigger a suggestion instead of waiting for a timeout then press `Shift-Alt-S`. To use only manual suggestions then set the timeout value to 99999 to avoid
 it ever triggering.
 
 ### Centralized prompt for extra instructions
