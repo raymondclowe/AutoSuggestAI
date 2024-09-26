@@ -38,6 +38,18 @@ let oldContent;
 let thinkingDiv;
 let actionBox
 let suggestedBlockIDs = [];
+let suggestionMutex = false;
+
+function acquireMutex() {
+  if (suggestionMutex) return false;
+  suggestionMutex = true;
+  return true;
+}
+
+function releaseMutex() {
+  suggestionMutex = false;
+}
+
 
 // different kinds of blocks and different wp versions may expose their text content in 
 // different ways. this helper function just gets any text from any block, regardless of the type
@@ -507,10 +519,13 @@ function handleSuggestion(text) {
 
 }
 
+
+
 function idleNow() {
 
-    console.log("idle")
+    console.log("idle")    
     idle = true;
+    if (!acquireMutex()) return;
     if (suggestionState === 'active') {
         suggestionState = 'inactive-before-suggestion'
     }
@@ -563,7 +578,8 @@ function idleNow() {
 
         suggestionState = 'inactive-asked-for-suggestion'
         suggestionTextPromise.then(handleSuggestion)
-    }
+    };
+    releaseMutex();
 }
 
 // Gets all the text before, and not including, the current block
@@ -638,6 +654,7 @@ document.addEventListener('keydown', (event) => {
 // Function to handle triggering the suggestion with the hotkey
 function triggerSuggestion() {
     console.log("Suggestion triggered by hotkey");
+    if (!acquireMutex()) return;
     suggestionHotkeyActive = true;
     thinkingIndicator('show');
 
@@ -655,6 +672,7 @@ function triggerSuggestion() {
     const suggestionTextPromise = getSuggestionPromise(title, contextText, currentBlockText);
     suggestionState = 'inactive-asked-for-suggestion';
     suggestionTextPromise.then(handleSuggestion);
+    releaseMutex();
 }
 
 
