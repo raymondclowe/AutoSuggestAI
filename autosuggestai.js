@@ -321,6 +321,7 @@ function insertTextIntoCurrentBlock(text) {
         suggestionAction();
 
         console.log("Inserting text in suggestion mode")
+        console.log("Text is: [" + text + "]")
         suggestedBlockIDs = [];
 
         // Get the selected block
@@ -344,7 +345,7 @@ function insertTextIntoCurrentBlock(text) {
 
         // Split text into parts based on line breaks
         const parts = text.split(/\r?\n/);
-        const firstPart = parts.trim();
+        const firstPart = parts[0].trim();
 
         // Combine current content with the new text
         const newContent = `${oldContent}<i>${firstPart}</i>`;
