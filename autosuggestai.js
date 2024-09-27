@@ -47,9 +47,15 @@ function acquireMutex() {
 }
 
 function releaseMutex() {
-  suggestionMutex = false;
+    if (suggestionMutex) {
+        suggestionMutex = false;
+        // Add a delay before releasing the Mutex
+        setTimeout(() => {
+            suggestionMutex = false;
+        }, 2000); // Adjust the delay as needed
+    }
+    return true;
 }
-
 
 // different kinds of blocks and different wp versions may expose their text content in 
 // different ways. this helper function just gets any text from any block, regardless of the type
@@ -319,15 +325,16 @@ function insertTextIntoCurrentBlock(text) {
 
         // Get the selected block
         const selectedBlock = wp.data.select('core/block-editor').getSelectedBlock();
+        const blockClientId = selectedBlock.clientId;
 
-        if (!selectedBlock) {
-            console.error('No block selected!');
+        if (!selectedBlock || selectedBlock.name !== 'core/paragraph') {
+            console.error('No valid paragraph block selected!');
             return;
         }
 
-        // Check if the block is a paragraph block. Adapt this check for other block types.
-        if (selectedBlock.name !== 'core/paragraph') {
-            console.error('Selected block is not a paragraph block.');
+        // Ensure the block is still selected before making changes
+        if (wp.data.select('core/block-editor').getSelectedBlock().clientId !== blockClientId) {
+            console.error('Block selection changed!');
             return;
         }
 
@@ -337,36 +344,27 @@ function insertTextIntoCurrentBlock(text) {
 
         // Split text into parts based on line breaks
         const parts = text.split(/\r?\n/);
-        const firstPart = parts[0].trim();
+        const firstPart = parts.trim();
 
         // Combine current content with the new text
         const newContent = `${oldContent}<i>${firstPart}</i>`;
 
         // Update the block's content with the first part
-        wp.data.dispatch('core/block-editor').updateBlockAttributes(selectedBlock.clientId, {
+        wp.data.dispatch('core/block-editor').updateBlockAttributes(blockClientId, {
             content: newContent,
         });
 
-
         // Place the selection at the end of the inserted text
-        const blockClientId = selectedBlock.clientId;
         suggestedBlockIDs.push(blockClientId);
-        // if (selectedBlock.name === 'core/paragraph') {
-        //     cursorPosition = newContent.length + 1; // Adjust cursor position to exclude the space
-        //     wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", cursorPosition, cursorPosition);
-
-        // } else {
-        //     console.warn('Cursor adjustment is not supported for this block type.');
-        // }
 
         // if and only if there are more parts of text
         if (parts.length > 1) {
 
             // Get the position of the current block
-            const currentBlockIndex = wp.data.select('core/block-editor').getBlockIndex(selectedBlock.clientId);
+            let currentBlockIndex = wp.data.select('core/block-editor').getBlockIndex(blockClientId);
 
             // Insert remaining parts as new blocks after the current block
-            let prevBlockId = selectedBlock.clientId;
+            let prevBlockId = blockClientId;
             for (let i = 1; i < parts.length; i++) {
                 if (parts[i].trim() !== '') {
                     const newBlock = wp.blocks.createBlock('core/paragraph', {
@@ -375,13 +373,15 @@ function insertTextIntoCurrentBlock(text) {
                     wp.data.dispatch('core/block-editor').insertBlock(newBlock, currentBlockIndex + i - 1);
                     prevBlockId = newBlock.clientId;
                     suggestedBlockIDs.push(prevBlockId);
+                    // Update the block index after insertion
+                    currentBlockIndex = wp.data.select('core/block-editor').getBlockIndex(prevBlockId);
                 }
             }
 
             // Move cursor to end of last inserted block
-            // const lastBlockId = prevBlockId;
-            // wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", parts[parts.length - 1].length, parts[parts.length - 1].length);
-            // moveCursorToEnd();
+            const lastBlockId = prevBlockId;
+            const lastBlockLength = wp.data.select('core/block-editor').getBlock(lastBlockId).attributes.content.length;
+            setTimeout(() => { wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", lastBlockLength, lastBlockLength) }, 1000);
 
             // Move cursor to original block and end of the original text
             setTimeout(() => { wp.data.dispatch('core/block-editor').selectionChange(blockClientId, "content", oldContent.length, oldContent.length) }, 1000);
@@ -410,6 +410,7 @@ function insertTextIntoCurrentBlock(text) {
         setTimeout(() => { wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", lastBlockLength, lastBlockLength) }, 1000);
     }
 }
+
 
 const tabHandler = (event) => {
     if (suggestionState === 'inactive-got-suggestion') {
@@ -513,6 +514,7 @@ function handleSuggestion(text) {
 
     setTimeout(function () {
         moveCursorTo(oldContent.length);
+        releaseMutex();
     }, 1000);
     // wait for a tab
     document.addEventListener('keydown', tabHandler);
@@ -630,7 +632,9 @@ function resetIdle(event) {
     }
 
 
-    suggestionState = "active"
+    suggestionState = "active";
+
+    releaseMutex();
 
     idleTimeout = setTimeout(idleNow, AIDelay * 1000);
 }
