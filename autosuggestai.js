@@ -39,21 +39,20 @@ let thinkingDiv;
 let actionBox
 let suggestedBlockIDs = [];
 let suggestionMutex = false;
+let mutexTimeout = null;
 
 function acquireMutex() {
-  if (suggestionMutex) return false;
-  suggestionMutex = true;
-  return true;
+    if (suggestionMutex) return false;
+    suggestionMutex = true;
+    return true;
 }
 
 function releaseMutex() {
-    if (suggestionMutex) {
-        suggestionMutex = false;
-        // Add a delay before releasing the Mutex
-        setTimeout(() => {
-            suggestionMutex = false;
-        }, 2000); // Adjust the delay as needed
+    if (mutexTimeout !== null) {
+        clearTimeout(mutexTimeout);
     }
+    suggestionMutex = false;
+    mutexTimeout = null;
     return true;
 }
 
@@ -74,11 +73,11 @@ function getBlockText(block) {
                 if (typeof innerBlock.attributes.content == 'string') {
                     textContent += innerBlock.attributes.content + '\n';
                 }
-                            // Check if the innerBlock has attributes, content, and if content.text is a string
-                            else if (innerBlock.attributes && innerBlock.attributes.content && typeof innerBlock.attributes.content.text === 'string') {
-                                // If all conditions are met, add the content.text to textContent with a newline
-                                textContent += innerBlock.attributes.content.text + '\n';
-                            }
+                // Check if the innerBlock has attributes, content, and if content.text is a string
+                else if (innerBlock.attributes && innerBlock.attributes.content && typeof innerBlock.attributes.content.text === 'string') {
+                    // If all conditions are met, add the content.text to textContent with a newline
+                    textContent += innerBlock.attributes.content.text + '\n';
+                }
             }
         });
     } else if (block.name === 'core/paragraph') {
@@ -262,14 +261,14 @@ function getSuggestionPromise(title, context, existingText) {
                     existingText: existingText
                 })
             })
-            .then(res => {
-                console.log(res)
-                // debugger
-                if (!res.ok) {
-                    throw new Error(res.statusText);
-                }
-                return res.json();
-            })
+                .then(res => {
+                    console.log(res)
+                    // debugger
+                    if (!res.ok) {
+                        throw new Error(res.statusText);
+                    }
+                    return res.json();
+                })
                 .then(data => {
                     thinkingIndicator('hide');
                     responseText = data['suggestion'];
@@ -409,6 +408,8 @@ function insertTextIntoCurrentBlock(text) {
         const lastBlockId = suggestedBlockIDs[suggestedBlockIDs.length - 1];
         const lastBlockLength = wp.data.select('core/block-editor').getBlock(lastBlockId).attributes.content.length;
         setTimeout(() => { wp.data.dispatch('core/block-editor').selectionChange(lastBlockId, "content", lastBlockLength, lastBlockLength) }, 1000);
+
+        releaseMutex(); // Release the mutex after suggestion is applied
     }
 }
 
@@ -424,6 +425,8 @@ const tabHandler = (event) => {
             suggestionState = 'active';
 
             insertTextIntoCurrentBlock(suggestionText);
+
+            releaseMutex(); // Release after accepting the suggestion
         }
     }
     document.removeEventListener('keydown', tabHandler);
@@ -477,8 +480,8 @@ function handleSuggestion(text) {
     console.log("Got some suggestion: " + text);
     console.log("SuggestionState = " + suggestionState);
     // check if the state is still inactive asked for suggestion, as the user may have typed and so it will be active now. if it is the wrong status then we need to exit/return and give up on the suggestion.
-    if (suggestionState !== 'inactive-asked-for-suggestion' && 
-        suggestionHotkeyActive === false ) { // to get a suggestion we need either to be inactive or have manually hotkey requested it
+    if ((suggestionState !== 'inactive-asked-for-suggestion') &&
+        suggestionHotkeyActive === false) { // to get a suggestion we need either to be inactive or have manually hotkey requested it
         console.log("Suggestion state is wrong, so we are giving up on the suggestion")
         return;
     }
@@ -513,10 +516,10 @@ function handleSuggestion(text) {
 
     suggestionHotkeyActive = false; // resetting this flag
 
-    setTimeout(function () {
+    mutexTimeout = setTimeout(function () { // Use mutexTimeout here
         moveCursorTo(oldContent.length);
         releaseMutex();
-    }, 1000);
+    }, 500);
     // wait for a tab
     document.addEventListener('keydown', tabHandler);
 
@@ -526,10 +529,11 @@ function handleSuggestion(text) {
 
 function idleNow() {
 
-    console.log("idle")    
+    console.log("idle")
     idle = true;
-    if (!acquireMutex()) return;
     if (suggestionState === 'active') {
+        if (!acquireMutex()) return;
+        console.log("Acquired Mutex")
         suggestionState = 'inactive-before-suggestion'
     }
     else { console.log("idle but not active, so must be inside the suggestion process") }
@@ -609,6 +613,7 @@ function getContextText() {
 function resetIdle(event) {
     // check if it is a button that was clicked
     // console.log("Event:" + event.target.tagName)
+    if (!acquireMutex()) return;
     if (event && event.target.tagName === 'I') {
         return;
     }
@@ -677,7 +682,7 @@ function triggerSuggestion() {
     const suggestionTextPromise = getSuggestionPromise(title, contextText, currentBlockText);
     suggestionState = 'inactive-asked-for-suggestion';
     suggestionTextPromise.then(handleSuggestion);
-    releaseMutex();
+
 }
 
 
